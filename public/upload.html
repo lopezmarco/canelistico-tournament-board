@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cargar Resultados de Torneo - Canelistico</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="images/canelistico-logo.png">
+</head>
+<body>
+
+  <!-- Centered container occupying 75% screen space -->
+  <main class="upload-container" role="main">
+    
+    <!-- Top Header Navigation -->
+    <header class="tournament-header">
+      <a href="index.html" class="back-btn" id="btn-back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Volver a Inicio
+      </a>
+
+      <div class="tournament-brand-mini">
+        <img src="images/canelistico-logo.png" alt="Logo Canelistico">
+        <div class="tournament-brand-text">
+          <span class="name">Canelistico</span>
+          <span class="tagline">Panel de Administración</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Upload Form Section -->
+    <section class="upload-form-section">
+      
+      <!-- Tournament Selection Dropdown -->
+      <div class="form-group">
+        <label for="tournament-select" class="form-label">Seleccionar Torneo</label>
+        <select id="tournament-select" class="custom-select">
+          <option value="Riftbound">Riftbound</option>
+          <option value="Pokémon">Pokémon</option>
+          <option value="Digimon">Digimon</option>
+          <option value="Lorcana">Lorcana</option>
+        </select>
+      </div>
+
+      <!-- ── WIDGET 1: Resultados del Torneo ────────────────── -->
+      <div class="form-group">
+        <label class="form-label">Archivo de Resultados (.CSV)</label>
+        <div class="upload-dropzone" id="dropzone">
+          <input type="file" id="csv-file-input" accept=".csv,text/csv">
+          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <div class="upload-text-main" id="dropzone-text-main">Haz clic o arrastra tu archivo .CSV aquí</div>
+          <div class="upload-text-sub" id="dropzone-text-sub">Formato: Título (L1), Fecha (L2), Resultados Puesto,Jugador,Deck,Puntos</div>
+        </div>
+      </div>
+
+      <!-- Validation Feedback — Widget 1 -->
+      <div class="validation-box" id="validation-box">
+        <div id="validation-message"></div>
+      </div>
+
+      <!-- Cargar Button — Widget 1 -->
+      <button type="button" id="btn-upload" class="btn-upload-main" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Cargar
+      </button>
+
+      <!-- Visual separator between both widgets -->
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); margin: 10px 0;"></div>
+
+      <!-- ── WIDGET 2: Archivo de Ranking Global ─────────────── -->
+      <div class="form-group">
+        <label class="form-label" style="display:flex; align-items:center; gap:8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          Archivo de Ranking Global
+        </label>
+        <div class="upload-dropzone" id="dropzone-global">
+          <input type="file" id="csv-global-input" accept=".csv,text/csv">
+          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#f59e0b;">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <div class="upload-text-main" id="dropzone-global-text-main">Haz clic o arrastra tu archivo .CSV aquí</div>
+          <div class="upload-text-sub" id="dropzone-global-text-sub">Formato: 4 columnas por fila (Puesto,Jugador,Deck,Puntos) &bull; Solo resultados</div>
+        </div>
+      </div>
+
+      <!-- Validation Feedback — Widget 2 -->
+      <div class="validation-box" id="validation-box-global">
+        <div id="validation-message-global"></div>
+      </div>
+
+      <!-- Cargar Button — Widget 2 -->
+      <button type="button" id="btn-upload-global" class="btn-upload-main" disabled style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 20px rgba(245,158,11,0.35);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        Cargar
+      </button>
+
+    </section>
+
+    <!-- Footer inside modal -->
+    <footer class="modal-footer">
+      <p>Cartas y Coleccionables Canelistico &copy; 2026 &bull; Administrador de Torneos</p>
+    </footer>
+
+  </main>
+
+  <script src="js/upload.js"></script>
+</body>
+</html>

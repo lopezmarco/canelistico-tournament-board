@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canelistico - Resultados de Torneos TCG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="images/canelistico-logo.png">
+</head>
+<body>
+
+  <!-- Modal-like centered square occupying around 75% of screen space -->
+  <main class="modal-container-75" role="main">
+    
+    <!-- Top Branding Header -->
+    <header class="modal-header">
+      <div class="store-logo-wrapper">
+        <img src="images/canelistico-logo.png" alt="Logo Canelistico" class="store-logo clickable-logo" id="logo-trigger" title="Haga clic para acceder al registro">
+      </div>
+      <h1 class="store-brand-title">Canelistico</h1>
+      <p class="store-subtitle">Selecciona un juego para ver los resultados de torneos</p>
+    </header>
+
+    <!-- 4 Game Squares Grid in Exact Order: Riftbound, Pokémon, Digimon, Lorcana -->
+    <section class="games-grid" aria-label="Juegos de Cartas Coleccionables">
+      
+      <!-- 1. Riftbound -->
+      <a href="tournament.html?game=Riftbound" class="game-card" data-game="riftbound" id="card-riftbound">
+        <div class="game-icon-container">
+          <img src="images/riftbound.webp" alt="Riftbound" class="game-svg-icon">
+        </div>
+        <span class="game-title">Riftbound</span>
+      </a>
+
+      <!-- 2. Pokémon -->
+      <a href="tournament.html?game=Pok%C3%A9mon" class="game-card" data-game="pokemon" id="card-pokemon">
+        <div class="game-icon-container">
+          <img src="images/pokemon.webp" alt="Pokémon" class="game-svg-icon">
+        </div>
+        <span class="game-title">Pokémon</span>
+      </a>
+
+      <!-- 3. Digimon -->
+      <a href="tournament.html?game=Digimon" class="game-card" data-game="digimon" id="card-digimon">
+        <div class="game-icon-container">
+          <img src="images/digimon.png" alt="Digimon" class="game-svg-icon">
+        </div>
+        <span class="game-title">Digimon</span>
+      </a>
+
+      <!-- 4. Lorcana -->
+      <a href="tournament.html?game=Lorcana" class="game-card" data-game="lorcana" id="card-lorcana">
+        <div class="game-icon-container">
+          <img src="images/lorcana.png" alt="Lorcana" class="game-svg-icon">
+        </div>
+        <span class="game-title">Lorcana</span>
+      </a>
+
+    </section>
+
+    <!-- Footer inside modal -->
+    <footer class="modal-footer">
+      <p>Cartas y Coleccionables Canelistico &copy; 2026 &bull; Panel Oficial de Torneos</p>
+    </footer>
+
+  </main>
+
+  <!-- Centered "Registro" Modal -->
+  <div class="auth-modal-overlay" id="auth-modal" aria-hidden="true" role="dialog" aria-labelledby="modal-title">
+    <div class="auth-modal-card">
+      <button class="auth-modal-close-btn" id="btn-modal-close" aria-label="Cerrar modal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <h2 class="auth-modal-title" id="modal-title">Registro</h2>
+
+      <form class="auth-modal-form" id="auth-form" onsubmit="return false;">
+        <input 
+          type="password" 
+          id="auth-input" 
+          class="auth-modal-input" 
+          placeholder="Ingrese código de acceso"
+          autocomplete="off"
+          autofocus
+        >
+        <button type="submit" id="btn-enter" class="auth-modal-btn" disabled>Entrar</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const logoTrigger = document.getElementById('logo-trigger');
+      const authModal = document.getElementById('auth-modal');
+      const modalCloseBtn = document.getElementById('btn-modal-close');
+      const authInput = document.getElementById('auth-input');
+      const enterBtn = document.getElementById('btn-enter');
+      const authForm = document.getElementById('auth-form');
+
+      const REQUIRED_CODE = 'caneloccc';
+
+      // Open Modal
+      logoTrigger.addEventListener('click', () => {
+        authModal.classList.add('active');
+        authModal.setAttribute('aria-hidden', 'false');
+        authInput.value = '';
+        enterBtn.disabled = true;
+        setTimeout(() => authInput.focus(), 150);
+      });
+
+      // Close Modal
+      function closeModal() {
+        authModal.classList.remove('active');
+        authModal.setAttribute('aria-hidden', 'true');
+        authInput.value = '';
+        enterBtn.disabled = true;
+      }
+
+      modalCloseBtn.addEventListener('click', closeModal);
+
+      // Close on backdrop click
+      authModal.addEventListener('click', (e) => {
+        if (e.target === authModal) {
+          closeModal();
+        }
+      });
+
+      // Close on Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && authModal.classList.contains('active')) {
+          closeModal();
+        }
+      });
+
+      // Validate input: ONLY "caneloccc" enables the button
+      authInput.addEventListener('input', () => {
+        const val = authInput.value.trim();
+        if (val === REQUIRED_CODE) {
+          enterBtn.disabled = false;
+        } else {
+          enterBtn.disabled = true;
+        }
+      });
+
+      // Redirect on submit or button click
+      function handleSubmit() {
+        if (authInput.value.trim() === REQUIRED_CODE) {
+          window.location.href = 'upload.html';
+        }
+      }
+
+      enterBtn.addEventListener('click', handleSubmit);
+      authForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleSubmit();
+      });
+    });
+  </script>
+
+</body>
+</html>

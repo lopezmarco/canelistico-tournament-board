@@ -1,0 +1,20 @@
+{
+  "name": "canelistico-tcg",
+  "version": "1.0.0",
+  "description": "Canelistico Trading Card Game Tournament Results Web Application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "tcg",
+    "canelistico",
+    "tournaments",
+    "pokemon",
+    "digimon",
+    "lorcana",
+    "riftbound"
+  ],
+  "author": "Canelistico TCG",
+  "license": "ISC"
+}

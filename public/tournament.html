@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resultados de Torneo - Canelistico</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="images/canelistico-logo.png">
+</head>
+<body>
+
+  <!-- Centered container occupying around 80% of available screen space -->
+  <main class="tournament-container-80" role="main">
+    
+    <!-- Header with Back Button and Brand Mini -->
+    <header class="tournament-header">
+      <a href="index.html" class="back-btn" id="btn-back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        Volver a Juegos
+      </a>
+
+      <div class="tournament-brand-mini">
+        <img src="images/canelistico-logo.png" alt="Logo Canelistico">
+        <div class="tournament-brand-text">
+          <span class="name">Canelistico</span>
+          <span class="tagline">Resultados Oficiales</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Ranking Global Table (first) -->
+    <section style="margin-bottom: 28px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <h2 style="font-family:'Outfit',sans-serif; font-size:18px; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; color:#f59e0b; margin:0;">Ranking Global</h2>
+      </div>
+      <div class="table-responsive-wrapper" style="max-height: none;">
+        <table class="results-table" id="global-ranking-table">
+          <thead>
+            <tr>
+              <th scope="col">Puesto</th>
+              <th scope="col">Jugador</th>
+              <th scope="col">Deck</th>
+              <th scope="col">Puntos</th>
+            </tr>
+          </thead>
+          <tbody id="global-ranking-body">
+            <!-- Rendered by tournament.js -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Game Title + Subtitle row, with search input pushed to the far right -->
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:14px; flex-wrap:wrap;">
+      <div class="game-badge-header">
+        <div class="game-title-icon-badge" id="game-icon-badge">
+          <img src="images/digimon.svg" alt="Game Icon" id="current-game-icon" style="width:100%;height:100%;">
+        </div>
+        <div>
+          <h1 class="tournament-main-title" id="table-game-title">Digimon</h1>
+          <p class="tournament-main-subtitle" id="table-game-subtitle">Torneo Semanal - Clasificación General</p>
+        </div>
+      </div>
+
+      <!-- Search input — far right -->
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="player-search" class="search-input" placeholder="Buscar jugador o deck...">
+      </div>
+    </div>
+
+    <!-- Tournament Results Table -->
+    <div class="table-responsive-wrapper">
+      <table class="results-table" id="tournament-table">
+        <thead>
+          <tr>
+            <th scope="col">Puesto</th>
+            <th scope="col">Jugador</th>
+            <th scope="col">Deck</th>
+            <th scope="col">Puntos</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <!-- Rows will be dynamically rendered here by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tournament Results Footer -->
+    <footer class="tournament-footer">
+      <span>Mostrando <strong id="total-rows-count">16</strong> participantes</span>
+      <span>Actualizado: Octubre 2026 &bull; Canelistico TCG</span>
+    </footer>
+
+  </main>
+
+  <script src="js/tournament.js"></script>
+</body>
+</html>

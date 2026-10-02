@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Glowing Blue Orb with Cyber Mesh inspired by reference image -->
+  <defs>
+    <radialGradient id="digiGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#bae6fd" />
+      <stop offset="45%" stop-color="#38bdf8" />
+      <stop offset="85%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </radialGradient>
+  </defs>
+  <circle cx="50" cy="50" r="44" fill="url(#digiGlow)"/>
+  <!-- Digital lines / wireframe web -->
+  <path d="M12 40 Q 50 20 88 40" stroke="#ffffff" stroke-width="1.8" opacity="0.8" fill="none"/>
+  <path d="M12 60 Q 50 80 88 60" stroke="#ffffff" stroke-width="1.8" opacity="0.8" fill="none"/>
+  <path d="M30 14 Q 40 50 30 86" stroke="#ffffff" stroke-width="1.8" opacity="0.8" fill="none"/>
+  <path d="M70 14 Q 60 50 70 86" stroke="#ffffff" stroke-width="1.8" opacity="0.8" fill="none"/>
+  <path d="M22 26 L 78 74" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+  <path d="M22 74 L 78 26" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+  <path d="M15 50 H 85" stroke="#ffffff" stroke-width="2" opacity="0.9"/>
+  <path d="M50 15 V 85" stroke="#ffffff" stroke-width="2" opacity="0.9"/>
+  <circle cx="50" cy="50" r="8" fill="#ffffff" opacity="0.95"/>
+</svg>

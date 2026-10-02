@@ -1,0 +1,250 @@
+{
+  "riftbound": {
+    "name": "Riftbound",
+    "title": "Nexus Night Octubre",
+    "subtitle": "01/10/2026",
+    "date": "01/10/2026",
+    "iconColor": "#f97316",
+    "results": [
+      {
+        "puesto": "1",
+        "jugador": "angel",
+        "deck": "Nasus",
+        "puntos": "10 Pts"
+      },
+      {
+        "puesto": "2",
+        "jugador": "Pedro",
+        "deck": "Teemo",
+        "puntos": "8 Pts"
+      },
+      {
+        "puesto": "3",
+        "jugador": "Marco",
+        "deck": "Kai'sa",
+        "puntos": "5 Pts"
+      },
+      {
+        "puesto": "4",
+        "jugador": "Sofia",
+        "deck": "Jinx",
+        "puntos": "4 Pts"
+      },
+      {
+        "puesto": "5",
+        "jugador": "Gusifer",
+        "deck": "Viktor",
+        "puntos": "3 Pts"
+      }
+    ],
+    "globalRanking": [
+      {
+        "puesto": "1",
+        "jugador": "angel",
+        "deck": "Nasus",
+        "puntos": "1 Pts"
+      },
+      {
+        "puesto": "2",
+        "jugador": "Pedro",
+        "deck": "Teemo",
+        "puntos": "2 Pts"
+      },
+      {
+        "puesto": "3",
+        "jugador": "angel",
+        "deck": "Nasus",
+        "puntos": "3 Pts"
+      },
+      {
+        "puesto": "4",
+        "jugador": "Pedro",
+        "deck": "Teemo",
+        "puntos": "4 Pts"
+      }
+    ]
+  },
+  "pokemon": {
+    "name": "Pokémon",
+    "title": "Nexus Night Octubre",
+    "subtitle": "01/10/2026",
+    "date": "01/10/2026",
+    "iconColor": "#eab308",
+    "results": [
+      {
+        "puesto": "1",
+        "jugador": "angel",
+        "deck": "Nasus",
+        "puntos": "10 Pts"
+      },
+      {
+        "puesto": "2",
+        "jugador": "Pedro",
+        "deck": "Teemo",
+        "puntos": "8 Pts"
+      },
+      {
+        "puesto": "3",
+        "jugador": "Marco",
+        "deck": "Kai'sa",
+        "puntos": "5 Pts"
+      },
+      {
+        "puesto": "4",
+        "jugador": "Sofia",
+        "deck": "Jinx",
+        "puntos": "4 Pts"
+      },
+      {
+        "puesto": "5",
+        "jugador": "Gusifer",
+        "deck": "Viktor",
+        "puntos": "3 Pts"
+      }
+    ],
+    "globalRanking": [
+      {
+        "puesto": "1",
+        "jugador": "angel",
+        "deck": "Nasus",
+        "puntos": "10 Pts"
+      },
+      {
+        "puesto": "2",
+        "jugador": "Pedro",
+        "deck": "Teemo",
+        "puntos": "8 Pts"
+      },
+      {
+        "puesto": "3",
+        "jugador": "Marco",
+        "deck": "Kai'sa",
+        "puntos": "5 Pts"
+      },
+      {
+        "puesto": "4",
+        "jugador": "Sofia",
+        "deck": "Jinx",
+        "puntos": "4 Pts"
+      }
+    ]
+  },
+  "digimon": {
+    "name": "Digimon",
+    "title": "Nexus Night Octubre",
+    "subtitle": "01/10/2026",
+    "date": "01/10/2026",
+    "iconColor": "#38bdf8",
+    "results": [
+      {
+        "puesto": "1",
+        "deck": "Nasus",
+        "jugador": "angel",
+        "puntos": "10 Pts"
+      },
+      {
+        "puesto": "2",
+        "deck": "Teemo",
+        "jugador": "Pedro",
+        "puntos": "8 Pts"
+      },
+      {
+        "puesto": "3",
+        "deck": "Kai'sa",
+        "jugador": "Marco",
+        "puntos": "5 Pts"
+      }
+    ],
+    "globalRanking": [
+      {
+        "puesto": "1",
+        "deck": "WarGreymon",
+        "jugador": "Tai",
+        "puntos": "100 Pts"
+      },
+      {
+        "puesto": "2",
+        "deck": "MetalGarurumon",
+        "jugador": "Matt",
+        "puntos": "95 Pts"
+      },
+      {
+        "puesto": "3",
+        "deck": "MagnaAngemon",
+        "jugador": "TK",
+        "puntos": "88 Pts"
+      },
+      {
+        "puesto": "4",
+        "deck": "Angewomon",
+        "jugador": "Kari",
+        "puntos": "80 Pts"
+      }
+    ]
+  },
+  "lorcana": {
+    "name": "Lorcana",
+    "title": "Nexus Night Octubre",
+    "subtitle": "01/10/2026",
+    "date": "01/10/2026",
+    "iconColor": "#a855f7",
+    "results": [
+      {
+        "puesto": "1",
+        "jugador": "angel",
+        "deck": "Nasus",
+        "puntos": "10 Pts"
+      },
+      {
+        "puesto": "2",
+        "jugador": "Pedro",
+        "deck": "Teemo",
+        "puntos": "8 Pts"
+      },
+      {
+        "puesto": "3",
+        "jugador": "Marco",
+        "deck": "Kai'sa",
+        "puntos": "5 Pts"
+      },
+      {
+        "puesto": "4",
+        "jugador": "Sofia",
+        "deck": "Jinx",
+        "puntos": "4 Pts"
+      },
+      {
+        "puesto": "5",
+        "jugador": "Gusifer",
+        "deck": "Viktor",
+        "puntos": "3 Pts"
+      }
+    ],
+    "globalRanking": [
+      {
+        "puesto": "1",
+        "jugador": "angel",
+        "deck": "Nasus",
+        "puntos": "1 Pts"
+      },
+      {
+        "puesto": "2",
+        "jugador": "Pedro",
+        "deck": "Teemo",
+        "puntos": "2 Pts"
+      },
+      {
+        "puesto": "3",
+        "jugador": "angel",
+        "deck": "Nasus",
+        "puntos": "3 Pts"
+      },
+      {
+        "puesto": "4",
+        "jugador": "Pedro",
+        "deck": "Teemo",
+        "puntos": "4 Pts"
+      }
+    ]
+  }
+}
