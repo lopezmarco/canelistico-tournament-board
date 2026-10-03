@@ -17,6 +17,81 @@ document.addEventListener('DOMContentLoaded', async () => {
   const totalCountEl = document.getElementById('total-rows-count');
   const searchInput = document.getElementById('player-search');
 
+  // Deck List View Modal Elements
+  const decklistViewModalOverlay = document.getElementById('decklist-view-modal-overlay');
+  const btnCloseDecklistView = document.getElementById('btn-close-decklist-view');
+  const btnCloseDecklistViewBtn = document.getElementById('btn-close-decklist-view-btn');
+  const decklistViewTitle = document.getElementById('decklist-view-title');
+  const decklistViewSubtitle = document.getElementById('decklist-view-subtitle');
+  const viewDecklistCombinedText = document.getElementById('view-decklist-combined-text');
+
+  function formatDecklistText(deckData) {
+    if (!deckData || typeof deckData !== 'object') {
+      return 'Sin información de Deck List registrada.';
+    }
+
+    const sections = [
+      { title: 'LEGEND', value: deckData.legend },
+      { title: 'CHAMPION', value: deckData.champion },
+      { title: 'BATTLEFIELDS', value: deckData.battlefields },
+      { title: 'RUNES', value: deckData.runes },
+      { title: 'UNITS', value: deckData.units },
+      { title: 'SPELLS', value: deckData.spells },
+      { title: 'GEARS', value: deckData.gears },
+      { title: 'SIDEBOARD', value: deckData.sideboard }
+    ];
+
+    const formatted = sections.map(s => {
+      const val = (s.value || '').trim();
+      return `${s.title}:\n${val ? val : '—'}`;
+    });
+
+    return formatted.join('\n\n');
+  }
+
+  function openDecklistView(row, displayRank) {
+    if (!decklistViewModalOverlay) return;
+
+    const rank = row.puesto || displayRank || '—';
+    const player = row.jugador || 'Jugador';
+    const deckName = row.deck || 'Deck';
+    const deckData = row.deckList || {};
+
+    decklistViewTitle.textContent = `Deck List • Puesto #${rank}`;
+    decklistViewSubtitle.textContent = `${player} — ${deckName}`;
+
+    if (viewDecklistCombinedText) {
+      viewDecklistCombinedText.value = formatDecklistText(deckData);
+    }
+
+    decklistViewModalOverlay.classList.add('active');
+  }
+
+  function closeDecklistView() {
+    if (decklistViewModalOverlay) {
+      decklistViewModalOverlay.classList.remove('active');
+    }
+  }
+
+  if (btnCloseDecklistView) {
+    btnCloseDecklistView.addEventListener('click', closeDecklistView);
+  }
+  if (btnCloseDecklistViewBtn) {
+    btnCloseDecklistViewBtn.addEventListener('click', closeDecklistView);
+  }
+  if (decklistViewModalOverlay) {
+    decklistViewModalOverlay.addEventListener('click', (e) => {
+      if (e.target === decklistViewModalOverlay) {
+        closeDecklistView();
+      }
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && decklistViewModalOverlay && decklistViewModalOverlay.classList.contains('active')) {
+      closeDecklistView();
+    }
+  });
+
   // Map icon based on game name
   if (normalizedKey.includes('riftbound')) {
     iconElement.src = 'images/riftbound.webp';
@@ -68,8 +143,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const parsed = JSON.parse(cached);
       if (parsed.results && parsed.results.length > 0) {
         tournamentData = parsed.results;
-        currentTitle = parsed.title;
-        currentSubtitle = parsed.date;
+        if (parsed.title) currentTitle = parsed.title;
+        if (parsed.date) currentSubtitle = parsed.date;
       }
     }
   } catch (err) {}
@@ -115,6 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const tr = document.createElement('tr');
       const badgeClass = rankClasses[i] || '';
       const initialChar = row.jugador ? row.jugador.charAt(0).toUpperCase() : '?';
+      const hasDecklist = row.deckList && Object.values(row.deckList).some(v => v && v.trim().length > 0);
 
       tr.innerHTML = `
         <td><span class="rank-badge ${badgeClass}">#${row.puesto || (i + 1)}</span></td>
@@ -124,9 +200,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span>${row.jugador}</span>
           </div>
         </td>
-        <td><span class="deck-tag">${row.deck}</span></td>
+        <td>
+          <a href="javascript:void(0)" class="deck-tag deck-link ${hasDecklist ? 'has-decklist' : ''}" title="Ver Deck List de ${row.jugador}">
+            ${row.deck}
+          </a>
+        </td>
         <td>${row.puntos}</td>
       `;
+
+      tr.querySelector('.deck-link').addEventListener('click', () => {
+        openDecklistView(row, i + 1);
+      });
+
       globalBody.appendChild(tr);
     });
   }
@@ -137,16 +222,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const rows = [];
     for (let i = 1; i <= 16; i++) {
       rows.push({
-        puesto: "1",
+        puesto: i.toString(),
         jugador: "Gusifer",
         deck: "Viktor",
-        puntos: "666"
+        puntos: "666 Pts"
       });
     }
     return rows;
   }
 
-  // 3. Render Tournament table rows in the same order as .csv file
+  // 3. Render Tournament table rows
   function renderRows(data) {
     tableBody.innerHTML = '';
 
@@ -173,6 +258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       else if (displayRank === 3) rankBadgeClass = 'top-3';
 
       const initialChar = row.jugador ? row.jugador.charAt(0).toUpperCase() : '?';
+      const hasDecklist = row.deckList && Object.values(row.deckList).some(v => v && v.trim().length > 0);
 
       tr.innerHTML = `
         <td>
@@ -187,12 +273,18 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </td>
         <td>
-          <span class="deck-tag">${row.deck}</span>
+          <a href="javascript:void(0)" class="deck-tag deck-link ${hasDecklist ? 'has-decklist' : ''}" title="Ver Deck List de ${row.jugador}">
+            ${row.deck}
+          </a>
         </td>
         <td>
           ${row.puntos}
         </td>
       `;
+
+      tr.querySelector('.deck-link').addEventListener('click', () => {
+        openDecklistView(row, displayRank);
+      });
 
       tableBody.appendChild(tr);
     });

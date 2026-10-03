@@ -103,6 +103,37 @@
 
   </main>
 
+  <!-- ── MODAL: Read-only Deck List View ──────────────────────── -->
+  <div class="auth-modal-overlay" id="decklist-view-modal-overlay">
+    <div class="decklist-modal-card">
+      <button type="button" class="auth-modal-close-btn" id="btn-close-decklist-view" title="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div class="decklist-modal-header">
+        <h3 class="auth-modal-title" style="margin-bottom: 4px;" id="decklist-view-title">Deck List</h3>
+        <p class="decklist-modal-subtitle" id="decklist-view-subtitle">Baraja del jugador</p>
+      </div>
+
+      <div class="decklist-form">
+        <div class="form-group" style="width: 100%;">
+          <textarea id="view-decklist-combined-text" 
+                    class="row-input decklist-combined-textarea" 
+                    readonly 
+                    placeholder="Sin información de Deck List registrada."></textarea>
+        </div>
+
+        <!-- Close button inside modal -->
+        <button type="button" id="btn-close-decklist-view-btn" class="btn-upload-main" style="margin-top: 10px; width: 100%; background: #252525;">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/tournament.js"></script>
 </body>
 </html>

@@ -127,26 +127,29 @@ const server = http.createServer((req, res) => {
         const payload = JSON.parse(body);
         const { gameKey, title, date, results } = payload;
 
-        if (!gameKey || !title || !date || !Array.isArray(results)) {
+        if (!gameKey || !Array.isArray(results) || results.length === 0) {
           sendJson(400, { success: false, error: 'Datos incompletos o inválidos' });
           return;
         }
 
         const normalizedKey = gameKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const existing = tournamentsData[normalizedKey] || DEFAULT_GAMES[normalizedKey];
+        const finalTitle = title || (existing ? existing.title : gameKey);
+        const finalDate = date || (existing ? (existing.date || existing.subtitle) : 'Octubre 2026');
         
         if (!tournamentsData[normalizedKey]) {
           tournamentsData[normalizedKey] = {
             name: gameKey,
-            title: title,
-            subtitle: date,
-            date: date,
+            title: finalTitle,
+            subtitle: finalDate,
+            date: finalDate,
             results: results,
             globalRanking: []
           };
         } else {
-          tournamentsData[normalizedKey].title = title;
-          tournamentsData[normalizedKey].date = date;
-          tournamentsData[normalizedKey].subtitle = date;
+          tournamentsData[normalizedKey].title = finalTitle;
+          tournamentsData[normalizedKey].date = finalDate;
+          tournamentsData[normalizedKey].subtitle = finalDate;
           tournamentsData[normalizedKey].results = results;
         }
 

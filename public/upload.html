@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cargar Resultados de Torneo - Canelistico</title>
+  <title>Panel de Administración - Canelistico</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" type="image/png" href="images/canelistico-logo.png">
 </head>
@@ -31,10 +31,10 @@
       </div>
     </header>
 
-    <!-- Upload Form Section -->
+    <!-- Main Content Section -->
     <section class="upload-form-section">
       
-      <!-- Tournament Selection Dropdown -->
+      <!-- Tournament Selection Dropdown (Shared) -->
       <div class="form-group">
         <label for="tournament-select" class="form-label">Seleccionar Torneo</label>
         <select id="tournament-select" class="custom-select">
@@ -45,68 +45,133 @@
         </select>
       </div>
 
-      <!-- ── WIDGET 1: Resultados del Torneo ────────────────── -->
+      <!-- ── FORM 1: Ranking Global (4 rows fixed) ────────────────── -->
       <div class="form-group">
-        <label class="form-label">Archivo de Resultados (.CSV)</label>
-        <div class="upload-dropzone" id="dropzone">
-          <input type="file" id="csv-file-input" accept=".csv,text/csv">
-          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <div class="upload-text-main" id="dropzone-text-main">Haz clic o arrastra tu archivo .CSV aquí</div>
-          <div class="upload-text-sub" id="dropzone-text-sub">Formato: Título (L1), Fecha (L2), Resultados Puesto,Jugador,Deck,Puntos</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+          <label class="form-label" style="display:flex; align-items:center; gap:8px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c8832a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            Ranking Global &bull; 4 Posiciones
+          </label>
+          <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">Top 1 a 4</span>
+        </div>
+
+        <div class="dynamic-rows-wrapper">
+          <table class="dynamic-rows-table">
+            <thead>
+              <tr>
+                <th style="width: 75px; text-align: center;">Puesto</th>
+                <th>Jugador (1-30 car.)</th>
+                <th>Deck (1-40 car.)</th>
+                <th style="width: 120px; text-align: right;">Puntos (1-1000)</th>
+                <th style="width: 105px; text-align: center;">Deck List</th>
+              </tr>
+            </thead>
+            <tbody id="global-rows-body">
+              <!-- Rendered dynamically by upload.js -->
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Validation Feedback — Widget 1 -->
-      <div class="validation-box" id="validation-box">
-        <div id="validation-message"></div>
+      <!-- Validation Feedback Box — Form 1 -->
+      <div class="validation-box" id="global-validation-box">
+        <div id="global-validation-message"></div>
       </div>
 
-      <!-- Cargar Button — Widget 1 -->
-      <button type="button" id="btn-upload" class="btn-upload-main" disabled>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="17 8 12 3 7 8"></polyline>
-          <line x1="12" y1="3" x2="12" y2="15"></line>
+      <!-- Main "Actualizar" Button — Form 1 -->
+      <button type="button" id="btn-update-global" class="btn-upload-main">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2v6h-6"></path>
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+          <path d="M3 22v-6h6"></path>
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
         </svg>
-        Cargar
+        Actualizar
       </button>
 
-      <!-- Visual separator between both widgets -->
-      <div style="border-top: 1px solid rgba(255,255,255,0.08); margin: 10px 0;"></div>
+      <!-- Visual Separator -->
+      <div style="border-top: 1px solid rgba(255,255,255,0.08); margin: 8px 0;"></div>
 
-      <!-- ── WIDGET 2: Archivo de Ranking Global ─────────────── -->
+      <!-- ── FORM 2: Resultados de ultimo torneo (Dynamic rows) ──── -->
       <div class="form-group">
-        <label class="form-label" style="display:flex; align-items:center; gap:8px;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-          </svg>
-          Archivo de Ranking Global
-        </label>
-        <div class="upload-dropzone" id="dropzone-global">
-          <input type="file" id="csv-global-input" accept=".csv,text/csv">
-          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#f59e0b;">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-          </svg>
-          <div class="upload-text-main" id="dropzone-global-text-main">Haz clic o arrastra tu archivo .CSV aquí</div>
-          <div class="upload-text-sub" id="dropzone-global-text-sub">Formato: 4 columnas por fila (Puesto,Jugador,Deck,Puntos) &bull; Solo resultados</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <label class="form-label" style="display:flex; align-items:center; gap:8px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="0" ry="0"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Resultados de ultimo torneo
+          </label>
+          <button type="button" id="btn-add-tournament-row" class="btn-secondary-action">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Agregar Fila
+          </button>
+        </div>
+
+        <!-- Tournament Title & Date Inputs -->
+        <div class="decklist-form-row" style="margin-bottom: 12px;">
+          <div class="form-group" style="flex: 2;">
+            <label class="form-label" for="tournament-name-input">Nombre de torneo (1-100 car.)</label>
+            <input type="text" 
+                   id="tournament-name-input" 
+                   class="row-input" 
+                   minlength="1" 
+                   maxlength="100" 
+                   placeholder="Ej. Nexus Night Octubre" 
+                   required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="tournament-date-input">Fecha de torneo (1-15 car.)</label>
+            <input type="text" 
+                   id="tournament-date-input" 
+                   class="row-input" 
+                   minlength="1" 
+                   maxlength="15" 
+                   placeholder="Ej. 01/10/2026" 
+                   required>
+          </div>
+        </div>
+
+        <div class="dynamic-rows-wrapper">
+          <table class="dynamic-rows-table">
+            <thead>
+              <tr>
+                <th style="width: 75px; text-align: center;">Puesto</th>
+                <th>Jugador (1-30 car.)</th>
+                <th>Deck (1-40 car.)</th>
+                <th style="width: 120px; text-align: right;">Puntos (1-1000)</th>
+                <th style="width: 105px; text-align: center;">Deck List</th>
+                <th style="width: 44px; text-align: center;"></th>
+              </tr>
+            </thead>
+            <tbody id="tournament-rows-body">
+              <!-- Rendered dynamically by upload.js -->
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Validation Feedback — Widget 2 -->
-      <div class="validation-box" id="validation-box-global">
-        <div id="validation-message-global"></div>
+      <!-- Validation Feedback Box — Form 2 -->
+      <div class="validation-box" id="tournament-validation-box">
+        <div id="tournament-validation-message"></div>
       </div>
 
-      <!-- Cargar Button — Widget 2 -->
-      <button type="button" id="btn-upload-global" class="btn-upload-main" disabled style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 20px rgba(245,158,11,0.35);">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      <!-- Main "Actualizar Torneo" Button — Form 2 -->
+      <button type="button" id="btn-update-tournament" class="btn-upload-main" style="background: #2563eb;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 2v6h-6"></path>
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+          <path d="M3 22v-6h6"></path>
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
         </svg>
-        Cargar
+        Actualizar Torneo
       </button>
 
     </section>
@@ -117,6 +182,80 @@
     </footer>
 
   </main>
+
+  <!-- ── MODAL: Deck List Form ──────────────────────────────────── -->
+  <div class="auth-modal-overlay" id="decklist-modal-overlay">
+    <div class="decklist-modal-card">
+      <button type="button" class="auth-modal-close-btn" id="btn-close-decklist-modal" title="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div class="decklist-modal-header">
+        <h3 class="auth-modal-title" style="margin-bottom: 4px;" id="decklist-modal-title">Deck List</h3>
+        <p class="decklist-modal-subtitle" id="decklist-modal-subtitle">Registro de baraja del jugador</p>
+      </div>
+
+      <form class="decklist-form" id="decklist-form" onsubmit="return false;">
+        
+        <!-- Legend & Champion (Row with 2 columns) -->
+        <div class="decklist-form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="decklist-legend">Legend (1-30 car.)</label>
+            <input type="text" id="decklist-legend" class="row-input" minlength="1" maxlength="30" placeholder="Nombre de Legend" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="decklist-champion">Champion (1-30 car.)</label>
+            <input type="text" id="decklist-champion" class="row-input" minlength="1" maxlength="30" placeholder="Nombre de Champion" required>
+          </div>
+        </div>
+
+        <!-- Battlefields & Runes -->
+        <div class="decklist-form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="decklist-battlefields">Battlefields</label>
+            <textarea id="decklist-battlefields" class="row-input decklist-textarea" placeholder="Lista de Battlefields..."></textarea>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="decklist-runes">Runes</label>
+            <textarea id="decklist-runes" class="row-input decklist-textarea" placeholder="Lista de Runes..."></textarea>
+          </div>
+        </div>
+
+        <!-- Units & Spells -->
+        <div class="decklist-form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="decklist-units">Units</label>
+            <textarea id="decklist-units" class="row-input decklist-textarea" placeholder="Lista de Units..."></textarea>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="decklist-spells">Spells</label>
+            <textarea id="decklist-spells" class="row-input decklist-textarea" placeholder="Lista de Spells..."></textarea>
+          </div>
+        </div>
+
+        <!-- Gears & Sideboard -->
+        <div class="decklist-form-row">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="decklist-gears">Gears</label>
+            <textarea id="decklist-gears" class="row-input decklist-textarea" placeholder="Lista de Gears..."></textarea>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label" for="decklist-sideboard">Sideboard</label>
+            <textarea id="decklist-sideboard" class="row-input decklist-textarea" placeholder="Lista de Sideboard..."></textarea>
+          </div>
+        </div>
+
+        <!-- Modal Action Button -->
+        <button type="button" id="btn-decklist-submit" class="btn-upload-main" style="margin-top: 10px; width: 100%;">
+          Enviar
+        </button>
+
+      </form>
+    </div>
+  </div>
 
   <script src="js/upload.js"></script>
 </body>

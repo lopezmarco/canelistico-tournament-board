@@ -1,66 +1,88 @@
 {
   "riftbound": {
     "name": "Riftbound",
-    "title": "Nexus Night Octubre",
-    "subtitle": "01/10/2026",
-    "date": "01/10/2026",
+    "title": "Torneo Nocturno Nexus",
+    "subtitle": "05/10/2026",
+    "date": "05/10/2026",
     "iconColor": "#f97316",
     "results": [
       {
         "puesto": "1",
-        "jugador": "angel",
-        "deck": "Nasus",
-        "puntos": "10 Pts"
+        "jugador": "EL DIABLISIMO",
+        "deck": "Viktor Herald Of The Arcane",
+        "puntos": "500 Pts",
+        "deckList": {
+          "legend": "Viktor",
+          "champion": "viktor",
+          "battlefields": "campo 1\ncampo 2\ncampo 2",
+          "runes": "fury 12\ncalm 0",
+          "units": "unidad 1\nunidad 1\nunidad 1\nunidad 1\nunidad 1\nunidad 1\nunidad 1\nunidad 1\nunidad 1",
+          "spells": "spell 1\nspell 1\nspell 1\n",
+          "gears": "Gear 1\nGear 1\nGear 1Gear 1\nGear 1\nGear 1",
+          "sideboard": "side 1\nside 1\nside 1\nside 1\n"
+        }
       },
       {
         "puesto": "2",
-        "jugador": "Pedro",
-        "deck": "Teemo",
-        "puntos": "8 Pts"
+        "jugador": "xXSlicedRoseXx",
+        "deck": "Lillia Bashful Bloom",
+        "puntos": "11 Pts"
       },
       {
         "puesto": "3",
-        "jugador": "Marco",
-        "deck": "Kai'sa",
-        "puntos": "5 Pts"
+        "jugador": "Amores Perros",
+        "deck": "Kai'sa Daughter Of The Void",
+        "puntos": "10 Pts"
       },
       {
         "puesto": "4",
-        "jugador": "Sofia",
-        "deck": "Jinx",
-        "puntos": "4 Pts"
+        "jugador": "Leoep",
+        "deck": "Teemo Swift Scout",
+        "puntos": "8 Pts"
       },
       {
         "puesto": "5",
-        "jugador": "Gusifer",
-        "deck": "Viktor",
-        "puntos": "3 Pts"
+        "jugador": "Darkness221",
+        "deck": "Rengar Pridestalker",
+        "puntos": "8 Pts"
+      },
+      {
+        "puesto": "6",
+        "jugador": "Guich0s",
+        "deck": "Rengar Pridestalker",
+        "puntos": "7 Pts"
+      },
+      {
+        "puesto": "7",
+        "jugador": "guicho2",
+        "deck": "rengar",
+        "puntos": "10 Pts"
       }
     ],
     "globalRanking": [
       {
         "puesto": "1",
-        "jugador": "angel",
-        "deck": "Nasus",
-        "puntos": "1 Pts"
+        "jugador": "Gusifer666",
+        "deck": "Viktor Herald Of The Arcane",
+        "puntos": "66 Pts"
       },
       {
         "puesto": "2",
-        "jugador": "Pedro",
-        "deck": "Teemo",
-        "puntos": "2 Pts"
-      },
-      {
-        "puesto": "3",
-        "jugador": "angel",
-        "deck": "Nasus",
-        "puntos": "3 Pts"
+        "jugador": "xXSlicedRoseXx",
+        "deck": "Lillia Bashful Bloom",
+        "puntos": "46 Pts"
       },
       {
         "puesto": "4",
-        "jugador": "Pedro",
-        "deck": "Teemo",
-        "puntos": "4 Pts"
+        "jugador": "Amores Perros",
+        "deck": "Kai'sa Daughter Of The Void",
+        "puntos": "42 Pts"
+      },
+      {
+        "puesto": "4",
+        "jugador": "Leoep",
+        "deck": "Teemo Swift Scout",
+        "puntos": "38 Pts"
       }
     ]
   },

@@ -549,6 +549,34 @@ body::after {
   color: #a0a8b0;
 }
 
+.deck-tag.deck-link {
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.deck-tag.deck-link:hover {
+  background: #252525;
+  border-color: var(--accent-orange);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.deck-tag.deck-link.has-decklist {
+  border-color: rgba(200, 131, 42, 0.35);
+  color: #f0f0f0;
+}
+
+.deck-tag.deck-link.has-decklist:hover {
+  border-color: var(--accent-orange);
+  background: #231c15;
+  color: #ffffff;
+}
+
 /* Tournament Footer */
 .tournament-footer {
   display: flex;
@@ -858,63 +886,202 @@ body::after {
   color: #fff;
 }
 
-/* Upload Widget Dropzone */
-.upload-dropzone {
-  border: 1px dashed rgba(255, 255, 255, 0.10);
+/* Dynamic Editable Rows Table (Admin / Upload Page) */
+.dynamic-rows-wrapper {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  width: 100%;
+  overflow-x: auto;
+}
+
+.dynamic-rows-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dynamic-rows-table th {
+  padding: 12px 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: #191919;
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.dynamic-rows-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.dynamic-rows-table tr:last-child td {
+  border-bottom: none;
+}
+
+.dynamic-rows-table tr:hover td {
+  background: var(--bg-card);
+}
+
+.row-input {
+  width: 100%;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0;
-  background: #181818;
-  padding: 40px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  padding: 8px 10px;
+  color: #f0f0f0;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s ease;
+}
+
+.row-input:focus {
+  border-color: var(--accent-orange);
+}
+
+.row-input.input-puesto.readonly-puesto {
   text-align: center;
+  font-weight: 700;
+  color: var(--accent-orange);
+  background: #161616;
+  border-color: rgba(255, 255, 255, 0.04);
+  cursor: not-allowed;
+  user-select: none;
+  pointer-events: none;
+}
+
+.row-input.input-puesto.readonly-puesto:focus {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.row-input.input-puntos {
+  text-align: right;
+  font-family: 'Outfit', monospace;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.row-input:invalid {
+  border-color: #c06060;
+}
+
+/* Button "Cargar" for Deck List in table */
+.btn-decklist {
+  background: #141414;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0;
+  padding: 6px 14px;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.18s ease;
-  position: relative;
-  min-height: 180px;
-}
-
-.upload-dropzone:hover,
-.upload-dropzone.dragover {
-  border-color: var(--accent-orange);
-  background: #1e1610;
-}
-
-.upload-dropzone input[type="file"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
   width: 100%;
-  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
-.upload-icon {
-  width: 40px;
-  height: 40px;
-  color: var(--accent-orange);
-  margin-bottom: 12px;
-  transition: transform 0.18s ease;
+.btn-decklist:hover {
+  background: #222222;
+  border-color: var(--accent-orange);
+  color: #ffffff;
 }
 
-.upload-dropzone:hover .upload-icon {
-  transform: translateY(-3px);
+.btn-decklist.has-data {
+  border-color: #2563eb;
+  color: #60a5fa;
+  background: #111a2e;
 }
 
-.upload-text-main {
-  font-family: 'Outfit', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #e0e0e0;
-  margin-bottom: 6px;
+/* ── Deck List Modal ────────────────────────────────────────── */
+.decklist-modal-card {
+  position: relative;
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0;
+  padding: 28px;
+  width: 92%;
+  max-width: 680px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  transform: translateY(12px);
+  transition: transform 0.22s ease;
 }
 
-.upload-text-sub {
+.auth-modal-overlay.active .decklist-modal-card {
+  transform: translateY(0);
+}
+
+.decklist-modal-header {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.decklist-modal-subtitle {
   font-size: 11px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.decklist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.decklist-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.decklist-textarea {
+  min-height: 72px;
+  max-height: 180px;
+  resize: vertical;
+  line-height: 1.4;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.decklist-combined-textarea {
+  min-height: 380px;
+  max-height: 60vh;
+  resize: vertical;
+  line-height: 1.6;
+  font-size: 13px;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, monospace, sans-serif;
+  letter-spacing: 0.04em;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px;
+  color: #e0e0e0;
+  white-space: pre-wrap;
+  cursor: text;
+}
+
+.decklist-combined-textarea:focus {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 600px) {
+  .decklist-form-row {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 /* Validation Feedback */
@@ -956,7 +1123,7 @@ body::after {
   color: #888888;
 }
 
-/* Main "Cargar" Button */
+/* Main "Actualizar" / Action Button */
 .btn-upload-main {
   padding: 14px 28px;
   border-radius: 0;
@@ -989,3 +1156,63 @@ body::after {
 .btn-upload-main:not(:disabled):active {
   background: #8f4010;
 }
+
+/* Secondary Action Button (e.g. + Agregar Fila) */
+.btn-secondary-action {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0;
+  padding: 5px 10px;
+  color: var(--text-secondary);
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.btn-secondary-action:hover {
+  background: var(--bg-card);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+/* Row Remove Button */
+.btn-remove-row {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0;
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  margin: 0 auto;
+}
+
+.btn-remove-row:hover {
+  background: #2a1515;
+  border-color: #5a2020;
+  color: #e06060;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+
+
