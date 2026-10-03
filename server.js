@@ -1,10 +1,10 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const db = require('./db.js');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const DATA_FILE = path.join(__dirname, 'data', 'tournaments.json');
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -18,78 +18,6 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
   '.webp': 'image/webp'
 };
-
-// Initial default tournament data source
-const DEFAULT_GAMES = {
-  'riftbound': {
-    name: 'Riftbound',
-    title: 'Riftbound',
-    subtitle: 'Torneo Semanal - Temporada 2026',
-    date: 'Octubre 2026',
-    iconColor: '#f97316',
-    results: generateDefaultRows()
-  },
-  'pokemon': {
-    name: 'Pokémon',
-    title: 'Pokémon',
-    subtitle: 'Liga Oficial Canelistico - Estándar',
-    date: 'Octubre 2026',
-    iconColor: '#eab308',
-    results: generateDefaultRows()
-  },
-  'digimon': {
-    name: 'Digimon',
-    title: 'Digimon',
-    subtitle: 'Torneo de Evolución Canelomon',
-    date: 'Octubre 2026',
-    iconColor: '#38bdf8',
-    results: generateDefaultRows()
-  },
-  'lorcana': {
-    name: 'Lorcana',
-    title: 'Lorcana',
-    subtitle: 'Torneo de Tintas Mágicas - Iluminadores',
-    date: 'Octubre 2026',
-    iconColor: '#a855f7',
-    results: generateDefaultRows()
-  }
-};
-
-function generateDefaultRows() {
-  const rows = [];
-  for (let i = 1; i <= 16; i++) {
-    rows.push({
-      puesto: i.toString(),
-      jugador: 'Gusifer',
-      deck: 'Viktor',
-      puntos: '666'
-    });
-  }
-  return rows;
-}
-
-// Load data from file or init defaults
-function loadData() {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      const raw = fs.readFileSync(DATA_FILE, 'utf8');
-      return JSON.parse(raw);
-    }
-  } catch (e) {
-    console.error('Error reading data file:', e);
-  }
-  return JSON.parse(JSON.stringify(DEFAULT_GAMES));
-}
-
-function saveData(data) {
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Error writing data file:', e);
-  }
-}
-
-let tournamentsData = loadData();
 
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -115,7 +43,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // POST endpoint to upload/save tournament results
+  // POST endpoint to upload/save tournament results into SQLite
   if (req.method === 'POST' && pathname === '/api/tournament/upload') {
     let body = '';
     req.on('data', chunk => {
@@ -132,29 +60,12 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        const normalizedKey = gameKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const existing = tournamentsData[normalizedKey] || DEFAULT_GAMES[normalizedKey];
-        const finalTitle = title || (existing ? existing.title : gameKey);
-        const finalDate = date || (existing ? (existing.date || existing.subtitle) : 'Octubre 2026');
-        
-        if (!tournamentsData[normalizedKey]) {
-          tournamentsData[normalizedKey] = {
-            name: gameKey,
-            title: finalTitle,
-            subtitle: finalDate,
-            date: finalDate,
-            results: results,
-            globalRanking: []
-          };
-        } else {
-          tournamentsData[normalizedKey].title = finalTitle;
-          tournamentsData[normalizedKey].date = finalDate;
-          tournamentsData[normalizedKey].subtitle = finalDate;
-          tournamentsData[normalizedKey].results = results;
-        }
-
-        saveData(tournamentsData);
-        sendJson(200, { success: true, message: `Resultados guardados para ${gameKey}`, data: tournamentsData[normalizedKey] });
+        const updatedData = db.saveTournamentResults(gameKey, title, date, results);
+        sendJson(200, {
+          success: true,
+          message: `Resultados guardados en SQLite para ${gameKey}`,
+          data: updatedData
+        });
       } catch (err) {
         console.error('Error processing upload payload:', err);
         sendJson(500, { success: false, error: 'Error procesando la solicitud' });
@@ -163,7 +74,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // POST endpoint to upload/save Ranking Global
+  // POST endpoint to upload/save Ranking Global into SQLite
   if (req.method === 'POST' && pathname === '/api/tournament/upload-global') {
     let body = '';
     req.on('data', chunk => {
@@ -173,30 +84,19 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body);
-        const { gameKey, title, date, results } = payload;
+        const { gameKey, results } = payload;
 
         if (!gameKey || !Array.isArray(results)) {
           sendJson(400, { success: false, error: 'Datos incompletos o inválidos' });
           return;
         }
 
-        const normalizedKey = gameKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        
-        if (!tournamentsData[normalizedKey]) {
-          tournamentsData[normalizedKey] = {
-            name: gameKey,
-            title: gameKey,
-            subtitle: 'Torneo Oficial',
-            date: date || 'Octubre 2026',
-            results: generateDefaultRows(),
-            globalRanking: results.slice(0, 4)
-          };
-        } else {
-          tournamentsData[normalizedKey].globalRanking = results.slice(0, 4);
-        }
-
-        saveData(tournamentsData);
-        sendJson(200, { success: true, message: `Ranking Global guardado para ${gameKey}`, data: tournamentsData[normalizedKey] });
+        const updatedData = db.saveGlobalRanking(gameKey, results);
+        sendJson(200, {
+          success: true,
+          message: `Ranking Global guardado en SQLite para ${gameKey}`,
+          data: updatedData
+        });
       } catch (err) {
         console.error('Error processing global upload payload:', err);
         sendJson(500, { success: false, error: 'Error procesando la solicitud' });
@@ -205,107 +105,62 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // GET API endpoint for tournament data
+  // GET API endpoint for tournament data from SQLite
   if (req.method === 'GET' && pathname.startsWith('/api/tournament/')) {
     const gameKey = pathname.replace('/api/tournament/', '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    
-    // Refresh latest data
-    tournamentsData = loadData();
-    const tournament = tournamentsData[gameKey] || DEFAULT_GAMES[gameKey] || {
-      name: gameKey.charAt(0).toUpperCase() + gameKey.slice(1),
-      title: gameKey.charAt(0).toUpperCase() + gameKey.slice(1),
-      subtitle: 'Torneo Canelistico',
-      date: 'Octubre 2026',
-      results: generateDefaultRows(),
-      globalRanking: [
-        { puesto: '1', jugador: 'angel', deck: 'Nasus', puntos: '10 Pts' },
-        { puesto: '2', jugador: 'Pedro', deck: 'Teemo', puntos: '8 Pts' },
-        { puesto: '3', jugador: 'Marco', deck: "Kai'sa", puntos: '5 Pts' },
-        { puesto: '4', jugador: 'Sofia', deck: 'Jinx', puntos: '4 Pts' }
-      ]
-    };
-
-    const defaultGlobal = [
-      { puesto: '1', jugador: 'angel', deck: 'Nasus', puntos: '10 Pts' },
-      { puesto: '2', jugador: 'Pedro', deck: 'Teemo', puntos: '8 Pts' },
-      { puesto: '3', jugador: 'Marco', deck: "Kai'sa", puntos: '5 Pts' },
-      { puesto: '4', jugador: 'Sofia', deck: 'Jinx', puntos: '4 Pts' }
-    ];
-
-    const currentGlobal = (tournament.globalRanking && Array.isArray(tournament.globalRanking)) ? tournament.globalRanking : [];
-    const guaranteed4Global = [];
-    for (let i = 0; i < 4; i++) {
-      if (currentGlobal[i]) {
-        guaranteed4Global.push(currentGlobal[i]);
-      } else {
-        guaranteed4Global.push(defaultGlobal[i]);
-      }
-    }
-
-    sendJson(200, {
-      game: {
-        name: tournament.name || gameKey,
-        title: tournament.title || tournament.name || gameKey,
-        subtitle: tournament.subtitle || tournament.date || 'Torneo Canelistico',
-        date: tournament.date || 'Octubre 2026'
-      },
-      results: tournament.results || generateDefaultRows(),
-      globalRanking: guaranteed4Global
-    });
+    const tournamentData = db.getTournament(gameKey);
+    sendJson(200, tournamentData);
     return;
   }
 
-  // Handle route aliases
-  if (pathname === '/' || pathname === '/index.html') {
+  // Default route - serve index.html
+  if (pathname === '/' || pathname === '') {
     pathname = '/index.html';
-  } else if (pathname === '/tournament' || pathname.startsWith('/tournament/')) {
-    pathname = '/tournament.html';
-  } else if (pathname === '/upload' || pathname === '/registro' || pathname === '/admin') {
-    pathname = '/upload.html';
   }
 
-  // Serve static files
-  let filePath = path.join(PUBLIC_DIR, pathname);
+  // Sanitize path to prevent directory traversal
+  const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
+  let filePath = path.join(PUBLIC_DIR, safePath);
 
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403, { 'Content-Type': 'text/plain' });
-    res.end('403 Forbidden');
-    return;
+  // If path is a directory, look for index.html
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+    filePath = path.join(filePath, 'index.html');
   }
 
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      const fallbackPath = path.join(PUBLIC_DIR, 'index.html');
-      fs.readFile(fallbackPath, (readErr, content) => {
-        if (readErr) {
-          res.writeHead(404, { 'Content-Type': 'text/plain' });
-          res.end('404 Not Found');
-        } else {
-          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-          res.end(content);
-        }
-      });
-      return;
-    }
+  const extname = path.extname(filePath).toLowerCase();
+  const contentType = MIME_TYPES[extname] || 'application/octet-stream';
 
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-    fs.readFile(filePath, (readErr, content) => {
-      if (readErr) {
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('500 Internal Server Error');
+  fs.readFile(filePath, (error, content) => {
+    if (error) {
+      if (error.code === 'ENOENT') {
+        const notFoundPath = path.join(PUBLIC_DIR, 'index.html');
+        fs.readFile(notFoundPath, (err, notFoundContent) => {
+          if (err) {
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('404 - Página no encontrada');
+          } else {
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(notFoundContent);
+          }
+        });
       } else {
-        res.writeHead(200, { 'Content-Type': contentType });
-        res.end(content);
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(`Error del servidor: ${error.code}`);
       }
-    });
+    } else {
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'no-cache'
+      });
+      res.end(content);
+    }
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`🃏 Canelistico TCG - Servidor de Torneos activo`);
+  console.log('====================================================');
+  console.log('🃏 Canelistico TCG - Servidor con SQLite activo');
+  console.log(`📁 Base de datos persistente: data/canelistico.db`);
   console.log(`🚀 Accede a la aplicación en: http://localhost:${PORT}`);
-  console.log(`====================================================`);
+  console.log('====================================================');
 });

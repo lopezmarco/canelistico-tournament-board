@@ -32,7 +32,17 @@
         "puesto": "3",
         "jugador": "Amores Perros",
         "deck": "Kai'sa Daughter Of The Void",
-        "puntos": "10 Pts"
+        "puntos": "10 Pts",
+        "deckList": {
+          "legend": "a",
+          "champion": "a",
+          "battlefields": "",
+          "runes": "",
+          "units": "",
+          "spells": "",
+          "gears": "",
+          "sideboard": ""
+        }
       },
       {
         "puesto": "4",
