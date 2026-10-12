@@ -1002,6 +1002,12 @@ body::after {
   color: var(--accent-gold);
 }
 
+.player-puntos-input {
+  min-width: 72px;
+  padding-left: 10px;
+  padding-right: 12px; /* 2px more internal space so 3+ digit numbers visualize comfortably */
+}
+
 .row-input:invalid {
   border-color: #c06060;
 }

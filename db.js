@@ -511,6 +511,17 @@ function updatePlayersPoints(updates) {
   return { success: true, updated };
 }
 
+// Sets puntos to 0 for all players matching the given TCG
+function resetPlayersPoints(tcg) {
+  if (!tcg || typeof tcg !== 'string' || !tcg.trim()) {
+    return { success: false, error: 'TCG no especificado.' };
+  }
+  const cleanTcg = tcg.trim();
+  const stmt = db.prepare('UPDATE players SET puntos = 0 WHERE LOWER(tcg) = LOWER(?)');
+  const result = stmt.run(cleanTcg);
+  return { success: true, updated: Number(result.changes) };
+}
+
 // Initialize on require
 initSchema();
 seedInitialData();
@@ -523,5 +534,6 @@ module.exports = {
   addPlayer,
   getPlayers,
   deletePlayer,
-  updatePlayersPoints
+  updatePlayersPoints,
+  resetPlayersPoints
 };

@@ -646,10 +646,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const playersTableValidationBox = document.getElementById('players-table-validation-box');
   const playersTableValidationMessage = document.getElementById('players-table-validation-message');
   const btnUpdatePlayers = document.getElementById('btn-update-players');
+  const btnResetPoints = document.getElementById('btn-reset-points');
+  const btnExportPlayers = document.getElementById('btn-export-players');
   const deletePlayerModal = document.getElementById('delete-player-modal-overlay');
   const deletePlayerModalDetail = document.getElementById('delete-player-modal-detail');
   const btnConfirmDeletePlayer = document.getElementById('btn-confirm-delete-player');
   const btnCloseDeletePlayerModal = document.getElementById('btn-close-delete-player-modal');
+
+  const resetPointsModal = document.getElementById('reset-points-modal-overlay');
+  const resetPointsModalDetail = document.getElementById('reset-points-modal-detail');
+  const btnConfirmResetPoints = document.getElementById('btn-confirm-reset-points');
+  const btnCloseResetPointsModal = document.getElementById('btn-close-reset-points-modal');
 
   function sortPlayersState() {
     playersState.sort((a, b) => {
@@ -880,7 +887,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Remove only this exact record from memory
         playersState = playersState.filter(x => x.id !== p.id);
         renderPlayersTable();
-        updateGlobalRankingFromPlayers();
 
         playersTableValidationBox.className = 'validation-box success';
         playersTableValidationBox.style.display = 'flex';
@@ -951,6 +957,215 @@ document.addEventListener('DOMContentLoaded', () => {
       } finally {
         btnUpdatePlayers.disabled = false;
         btnUpdatePlayers.innerHTML = updateBtnHtml;
+      }
+    });
+  }
+
+  // ── Reiniciar Puntajes (Reset points to 0 for selected TCG) ──
+  function openResetPointsModal() {
+    if (resetPointsModalDetail) {
+      resetPointsModalDetail.textContent = `Todos los jugadores de "${playersCurrentTcg}" volverán a tener 0 puntos.`;
+    }
+    if (resetPointsModal) resetPointsModal.classList.add('active');
+  }
+
+  function closeResetPointsModal() {
+    if (resetPointsModal) resetPointsModal.classList.remove('active');
+  }
+
+  if (btnResetPoints) {
+    btnResetPoints.addEventListener('click', () => {
+      openResetPointsModal();
+    });
+  }
+
+  if (btnCloseResetPointsModal) {
+    btnCloseResetPointsModal.addEventListener('click', closeResetPointsModal);
+  }
+
+  if (resetPointsModal) {
+    resetPointsModal.addEventListener('click', (e) => {
+      if (e.target === resetPointsModal) closeResetPointsModal();
+    });
+  }
+
+  if (btnConfirmResetPoints) {
+    btnConfirmResetPoints.addEventListener('click', async () => {
+      const targetTcg = playersCurrentTcg || (tournamentSelect ? tournamentSelect.value : 'Riftbound');
+      btnConfirmResetPoints.disabled = true;
+      try {
+        const res = await fetch('/api/players/reset-points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tcg: targetTcg })
+        });
+        const data = await res.json();
+        closeResetPointsModal();
+
+        if (!res.ok || !data.success) {
+          showBoxError(playersTableValidationBox, playersTableValidationMessage, data.error || 'No se pudieron reiniciar los puntajes.');
+          return;
+        }
+
+        playersTableValidationBox.className = 'validation-box success';
+        playersTableValidationBox.style.display = 'flex';
+        playersTableValidationMessage.innerHTML = `
+          <div class="preview-header">🎉 ¡Puntajes de ${escapeHtml(targetTcg)} reiniciados a 0 (${data.updated} jugadores actualizados)!</div>
+        `;
+        await loadRegisteredPlayers(targetTcg);
+      } catch (err) {
+        console.error('Error resetting points:', err);
+        closeResetPointsModal();
+        showBoxError(playersTableValidationBox, playersTableValidationMessage, 'Error de conexión al reiniciar puntajes.');
+      } finally {
+        btnConfirmResetPoints.disabled = false;
+      }
+    });
+  }
+
+  // ── Exportar Jugadores a Excel (.xls / Spreadsheet XML) ──
+  function generateExcelXml(players, tcgName) {
+    const sanitize = (val) => {
+      if (val === null || val === undefined) return '';
+      return String(val)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Center"/>
+   <Borders/>
+   <Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="HeaderStyle">
+   <Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#1E293B" ss:Pattern="Solid"/>
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#0F172A"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="PuntosHeader">
+   <Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#0E7490" ss:Pattern="Solid"/>
+   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#0F172A"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="RowStyle">
+   <Alignment ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="PuntosStyle">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+   <Font ss:FontName="Segoe UI" x:Family="Swiss" ss:Size="11" ss:Color="#0F172A" ss:Bold="1"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Jugadores ${sanitize(tcgName)}">
+  <Table ss:DefaultRowHeight="20">
+   <Column ss:Width="60"/>
+   <Column ss:Width="150"/>
+   <Column ss:Width="180"/>
+   <Column ss:Width="220"/>
+   <Column ss:Width="110"/>
+   <Column ss:Width="80"/>
+   <Row ss:Height="24">
+    <Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">Puesto</Data></Cell>
+    <Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">Nickname</Data></Cell>
+    <Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">Nombre</Data></Cell>
+    <Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">Correo</Data></Cell>
+    <Cell ss:StyleID="HeaderStyle"><Data ss:Type="String">TCG</Data></Cell>
+    <Cell ss:StyleID="PuntosHeader"><Data ss:Type="String">Puntos</Data></Cell>
+   </Row>`;
+
+    players.forEach((p, idx) => {
+      xml += `
+   <Row>
+    <Cell ss:StyleID="RowStyle"><Data ss:Type="Number">${idx + 1}</Data></Cell>
+    <Cell ss:StyleID="RowStyle"><Data ss:Type="String">${sanitize(p.nickname)}</Data></Cell>
+    <Cell ss:StyleID="RowStyle"><Data ss:Type="String">${sanitize(p.nombre)}</Data></Cell>
+    <Cell ss:StyleID="RowStyle"><Data ss:Type="String">${sanitize(p.correo)}</Data></Cell>
+    <Cell ss:StyleID="RowStyle"><Data ss:Type="String">${sanitize(p.tcg)}</Data></Cell>
+    <Cell ss:StyleID="PuntosStyle"><Data ss:Type="Number">${Number(p.puntos) || 0}</Data></Cell>
+   </Row>`;
+    });
+
+    xml += `
+  </Table>
+ </Worksheet>
+</Workbook>`;
+    return xml;
+  }
+
+  if (btnExportPlayers) {
+    const originalExportHtml = btnExportPlayers.innerHTML;
+    btnExportPlayers.addEventListener('click', async () => {
+      const selectedTcg = tournamentSelect ? tournamentSelect.value : 'Riftbound';
+
+      // Disable button while file is being generated
+      btnExportPlayers.disabled = true;
+      btnExportPlayers.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="spin">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        Generando Excel...
+      `;
+
+      try {
+        // Fetch fresh players matching the selected TCG from SQLite
+        const res = await fetch(`/api/players?tcg=${encodeURIComponent(selectedTcg)}`);
+        const json = await res.json();
+        const records = (json && json.success && Array.isArray(json.data)) ? json.data : [];
+
+        // Build Excel document (Office XML Spreadsheet, recognized by Excel natively)
+        const xmlContent = generateExcelXml(records, selectedTcg);
+        const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel;charset=utf-8' });
+
+        // Trigger automatic download
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const safeTcg = selectedTcg.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        const dateStr = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `jugadores_${safeTcg}_${dateStr}.xls`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Error exporting players to Excel:', err);
+        showBoxError(playersTableValidationBox, playersTableValidationMessage, 'Error al exportar el archivo Excel.');
+      } finally {
+        // Re-enable button upon finalization
+        btnExportPlayers.disabled = false;
+        btnExportPlayers.innerHTML = originalExportHtml;
       }
     });
   }

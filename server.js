@@ -224,6 +224,31 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // POST endpoint to reset all players' puntos to 0 for a specific TCG
+  if (req.method === 'POST' && pathname === '/api/players/reset-points') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const { tcg } = JSON.parse(body || '{}');
+        if (!tcg || typeof tcg !== 'string' || !tcg.trim()) {
+          sendJson(400, { success: false, error: 'TCG no especificado.' });
+          return;
+        }
+        const result = db.resetPlayersPoints(tcg);
+        if (!result.success) {
+          sendJson(400, result);
+          return;
+        }
+        sendJson(200, { success: true, updated: result.updated });
+      } catch (err) {
+        console.error('Error resetting players points:', err);
+        sendJson(500, { success: false, error: 'Error al reiniciar puntajes.' });
+      }
+    });
+    return;
+  }
+
   // GET API endpoint for tournament data from SQLite
   if (req.method === 'GET' && pathname.startsWith('/api/tournament/')) {
     const gameKey = pathname.replace('/api/tournament/', '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
