@@ -45,50 +45,164 @@
         </select>
       </div>
 
-      <!-- ── FORM 1: Ranking Global (4 rows fixed) ────────────────── -->
+      <!-- ── FORM 0: Registro de Jugadores ────────────────────────── -->
       <div class="form-group">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
           <label class="form-label" style="display:flex; align-items:center; gap:8px;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c8832a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            Ranking Global &bull; 4 Posiciones
+            Registro de Jugadores
           </label>
-          <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">Top 1 a 4</span>
+          <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">Nuevo Registro</span>
         </div>
 
         <div class="dynamic-rows-wrapper">
           <table class="dynamic-rows-table">
             <thead>
               <tr>
-                <th style="width: 75px; text-align: center;">Puesto</th>
-                <th>Jugador (1-30 car.)</th>
-                <th>Deck (1-40 car.)</th>
-                <th style="width: 120px; text-align: right;">Puntos (1-1000)</th>
-                <th style="width: 105px; text-align: center;">Deck List</th>
+                <th style="width: 20%;">Nickname (máx 64)</th>
+                <th style="width: 24%;">Nombre (máx 64)</th>
+                <th style="width: 26%;">Correo (máx 64)</th>
+                <th style="width: 15%;">TCG</th>
+                <th style="width: 15%; text-align: right;">Puntos (0-1000)</th>
               </tr>
             </thead>
-            <tbody id="global-rows-body">
-              <!-- Rendered dynamically by upload.js -->
+            <tbody>
+              <tr>
+                <td>
+                  <input type="text" 
+                         id="player-nickname" 
+                         class="row-input" 
+                         maxlength="64" 
+                         placeholder="Nickname" 
+                         required>
+                </td>
+                <td>
+                  <input type="text" 
+                         id="player-nombre" 
+                         class="row-input" 
+                         maxlength="64" 
+                         placeholder="Nombre completo" 
+                         required>
+                </td>
+                <td>
+                  <input type="email" 
+                         id="player-correo" 
+                         class="row-input" 
+                         maxlength="64" 
+                         placeholder="correo@ejemplo.com" 
+                         required>
+                </td>
+                <td>
+                  <input type="text" 
+                         id="player-tcg" 
+                         class="row-input readonly-puesto" 
+                         disabled 
+                         value="Riftbound">
+                </td>
+                <td>
+                  <input type="number" 
+                         id="player-puntos" 
+                         class="row-input input-puntos" 
+                         min="0" 
+                         max="1000" 
+                         step="1" 
+                         value="0" 
+                         required>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Validation Feedback Box — Form 1 -->
-      <div class="validation-box" id="global-validation-box">
-        <div id="global-validation-message"></div>
+      <!-- Validation Feedback Box — Form 0 -->
+      <div class="validation-box" id="player-validation-box">
+        <div id="player-validation-message"></div>
       </div>
 
-      <!-- Main "Actualizar" Button — Form 1 -->
-      <button type="button" id="btn-update-global" class="btn-upload-main">
+      <!-- Main "Agregar Jugador" Button -->
+      <button type="button" id="btn-add-player" class="btn-upload-main" style="background: #16a34a;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="8.5" cy="7" r="4"></circle>
+          <line x1="20" y1="8" x2="20" y2="14"></line>
+          <line x1="23" y1="11" x2="17" y2="11"></line>
+        </svg>
+        Agregar Jugador
+      </button>
+
+      <!-- ── SECCIÓN: Jugadores Registrados para este Torneo ──────── -->
+      <div class="form-group" style="margin-top: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label class="form-label" style="display:flex; align-items:center; gap:8px; margin: 0;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              Jugadores Registrados &bull; <span id="players-table-tcg-name" style="color: #38bdf8;">Riftbound</span>
+            </label>
+            <span id="players-count-badge" style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
+              0 Jugadores
+            </span>
+          </div>
+
+          <!-- Single text field filter for Nickname, Nombre, Correo -->
+          <div class="players-filter-wrapper" style="position: relative; display: flex; align-items: center;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 10px; color: var(--text-muted); pointer-events: none;">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" 
+                   id="players-search-input" 
+                   class="row-input" 
+                   placeholder="Filtrar por nickname, nombre o correo..." 
+                   style="padding-left: 30px; width: 300px; font-size: 12px; height: 32px;"
+                   title="Buscar por Nickname, Nombre o Correo">
+          </div>
+        </div>
+
+        <div class="dynamic-rows-wrapper">
+          <table class="dynamic-rows-table" id="registered-players-table">
+            <thead>
+              <tr>
+                <th style="width: 18%;">Nickname</th>
+                <th style="width: 22%;">Nombre</th>
+                <th style="width: 26%;">Correo</th>
+                <th style="width: 12%;">TCG</th>
+                <th style="width: 110px; text-align: right;">Puntos</th>
+                <th style="width: 150px; text-align: center;"></th>
+              </tr>
+            </thead>
+            <tbody id="players-table-body">
+              <!-- Rendered dynamically by upload.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="players-pagination" id="players-pagination"></div>
+      </div>
+
+      <!-- Validation Feedback Box — Players Table -->
+      <div class="validation-box" id="players-table-validation-box">
+        <div id="players-table-validation-message"></div>
+      </div>
+
+      <!-- Main "Actualizar jugadores" Button -->
+      <button type="button" id="btn-update-players" class="btn-upload-main" style="background: #0e7490;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 2v6h-6"></path>
           <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
           <path d="M3 22v-6h6"></path>
           <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
         </svg>
-        Actualizar
+        Actualizar jugadores
       </button>
 
       <!-- Visual Separator -->
@@ -254,6 +368,23 @@
         </button>
 
       </form>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Confirmar Eliminación de Jugador ────────────────── -->
+  <div class="auth-modal-overlay" id="delete-player-modal-overlay">
+    <div class="auth-modal-card confirm-modal-card">
+      <button type="button" class="auth-modal-close-btn" id="btn-close-delete-player-modal" title="Cerrar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <p class="confirm-modal-text">¿Borrar jugador permanentemente?</p>
+      <p class="confirm-modal-detail" id="delete-player-modal-detail"></p>
+      <button type="button" id="btn-confirm-delete-player" class="btn-upload-main btn-danger-main">
+        Confirmar
+      </button>
     </div>
   </div>
 

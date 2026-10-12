@@ -482,6 +482,28 @@ body::after {
   color: var(--accent-gold);
 }
 
+/* Specific 3-column layout for #global-ranking-table (Puesto, Jugador, Puntos) */
+#global-ranking-table th:nth-child(1),
+#global-ranking-table td:nth-child(1) {
+  width: 110px;
+  padding-left: 28px;
+}
+
+#global-ranking-table th:nth-child(2),
+#global-ranking-table td:nth-child(2) {
+  width: auto;
+}
+
+#global-ranking-table th:nth-child(3),
+#global-ranking-table td:nth-child(3) {
+  width: 140px;
+  padding-right: 28px;
+  text-align: right;
+  font-family: 'Outfit', monospace;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
 .results-table tbody tr {
   transition: var(--transition);
 }
@@ -830,14 +852,14 @@ body::after {
 .upload-container {
   position: relative;
   z-index: 1;
-  width: 75vw;
-  max-width: 900px;
-  min-height: 75vh;
+  width: 90vw;
+  max-width: 1080px;
+  min-height: 80vh;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 0;
   box-shadow: var(--shadow-modal);
-  padding: 36px 40px;
+  padding: 42px 48px;
   display: flex;
   flex-direction: column;
   animation: fadeInModal 0.4s ease-out;
@@ -963,6 +985,14 @@ body::after {
 
 .row-input.input-puesto.readonly-puesto:focus {
   border-color: rgba(255, 255, 255, 0.04);
+}
+
+.row-input:disabled {
+  background: #181818;
+  color: var(--text-secondary);
+  border-color: rgba(255, 255, 255, 0.04);
+  cursor: not-allowed;
+  opacity: 0.9;
 }
 
 .row-input.input-puntos {
@@ -1219,6 +1249,131 @@ body::after {
 
 .spin {
   animation: spin 1s linear infinite;
+}
+
+/* Player TCG Tag / Badge in Admin Tables */
+.player-tcg-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Players Table Pagination */
+.players-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.players-pagination:empty {
+  display: none;
+}
+
+.page-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0;
+  color: var(--text-secondary);
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--bg-card);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.page-btn.active {
+  background: #0e7490;
+  border-color: #0e7490;
+  color: #ffffff;
+}
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-right: auto;
+}
+
+/* Delete Player Button (row) */
+.btn-delete-player {
+  background: transparent;
+  border: 1px solid #5a2020;
+  border-radius: 0;
+  padding: 6px 10px;
+  color: #e06060;
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-player:hover {
+  background: #2a1515;
+  color: #ff7070;
+}
+
+/* Danger (red) main button */
+.btn-upload-main.btn-danger-main {
+  background: #dc2626;
+  width: 100%;
+}
+
+.btn-upload-main.btn-danger-main:not(:disabled):hover {
+  background: #b91c1c;
+}
+
+.btn-upload-main.btn-danger-main:not(:disabled):active {
+  background: #991b1b;
+}
+
+/* Small confirmation modal */
+.confirm-modal-card {
+  max-width: 340px;
+  padding: 32px 24px 24px;
+  gap: 10px;
+}
+
+.confirm-modal-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0f0f0;
+  text-align: center;
+  margin: 4px 0 0;
+}
+
+.confirm-modal-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0 0 8px;
 }
 
 

@@ -105,6 +105,125 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // POST endpoint to register player into SQLite
+  if (req.method === 'POST' && pathname === '/api/player/register') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body);
+        const { nickname, nombre, correo, tcg, puntos } = payload;
+
+        if (!nickname || typeof nickname !== 'string' || nickname.trim().length === 0 || nickname.trim().length > 64) {
+          sendJson(400, { success: false, error: 'Nickname es requerido y debe tener máximo 64 caracteres.' });
+          return;
+        }
+
+        if (!nombre || typeof nombre !== 'string' || nombre.trim().length === 0 || nombre.trim().length > 64) {
+          sendJson(400, { success: false, error: 'Nombre es requerido y debe tener máximo 64 caracteres.' });
+          return;
+        }
+
+        if (!correo || typeof correo !== 'string' || correo.trim().length === 0 || correo.trim().length > 64) {
+          sendJson(400, { success: false, error: 'Correo es requerido y debe tener máximo 64 caracteres.' });
+          return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(correo.trim())) {
+          sendJson(400, { success: false, error: 'El formato de correo electrónico no es válido.' });
+          return;
+        }
+
+        const parsedPuntos = parseInt(puntos, 10);
+        if (isNaN(parsedPuntos) || parsedPuntos < 0 || parsedPuntos > 1000) {
+          sendJson(400, { success: false, error: 'Puntos debe ser un número entero entre 0 y 1000.' });
+          return;
+        }
+
+        const result = db.addPlayer({
+          nickname,
+          nombre,
+          correo,
+          tcg: tcg || 'Riftbound',
+          puntos: parsedPuntos
+        });
+
+        if (!result.success) {
+          sendJson(409, { success: false, error: result.error });
+          return;
+        }
+
+        sendJson(201, {
+          success: true,
+          message: `Jugador ${nickname.trim()} registrado exitosamente.`,
+          data: result.player
+        });
+      } catch (err) {
+        console.error('Error registering player:', err);
+        sendJson(500, { success: false, error: 'Error procesando el registro del jugador.' });
+      }
+    });
+    return;
+  }
+
+  // GET API endpoint for players list from SQLite
+  if (req.method === 'GET' && pathname === '/api/players') {
+    const tcgFilter = parsedUrl.searchParams.get('tcg');
+    const players = db.getPlayers(tcgFilter);
+    sendJson(200, { success: true, data: players });
+    return;
+  }
+
+  // POST endpoint to delete a single player by primary key
+  if (req.method === 'POST' && pathname === '/api/player/delete') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const { id } = JSON.parse(body || '{}');
+        const result = db.deletePlayer(id);
+        if (!result.success) {
+          sendJson(404, result);
+          return;
+        }
+        sendJson(200, { success: true, message: 'Jugador eliminado.' });
+      } catch (err) {
+        console.error('Error deleting player:', err);
+        sendJson(500, { success: false, error: 'Error eliminando al jugador.' });
+      }
+    });
+    return;
+  }
+
+  // POST endpoint to bulk update players' puntos
+  if (req.method === 'POST' && pathname === '/api/players/update-points') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const { updates } = JSON.parse(body || '{}');
+        if (!Array.isArray(updates) || updates.length === 0) {
+          sendJson(400, { success: false, error: 'No hay jugadores para actualizar.' });
+          return;
+        }
+        const result = db.updatePlayersPoints(updates);
+        if (!result.success) {
+          sendJson(400, result);
+          return;
+        }
+        sendJson(200, { success: true, updated: result.updated });
+      } catch (err) {
+        console.error('Error updating players points:', err);
+        sendJson(500, { success: false, error: 'Error actualizando jugadores.' });
+      }
+    });
+    return;
+  }
+
   // GET API endpoint for tournament data from SQLite
   if (req.method === 'GET' && pathname.startsWith('/api/tournament/')) {
     const gameKey = pathname.replace('/api/tournament/', '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");

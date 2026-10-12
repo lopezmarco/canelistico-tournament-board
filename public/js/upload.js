@@ -1,11 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
   const tournamentSelect = document.getElementById('tournament-select');
 
-  // Form 1 Elements (Ranking Global)
-  const globalRowsBody = document.getElementById('global-rows-body');
-  const globalValidationBox = document.getElementById('global-validation-box');
-  const globalValidationMessage = document.getElementById('global-validation-message');
-  const btnUpdateGlobal = document.getElementById('btn-update-global');
+  // Form 0 Elements (Registro de Jugadores)
+  const playerNicknameInput = document.getElementById('player-nickname');
+  const playerNombreInput = document.getElementById('player-nombre');
+  const playerCorreoInput = document.getElementById('player-correo');
+  const playerTcgInput = document.getElementById('player-tcg');
+  const playerPuntosInput = document.getElementById('player-puntos');
+  const btnAddPlayer = document.getElementById('btn-add-player');
+  const playerValidationBox = document.getElementById('player-validation-box');
+  const playerValidationMessage = document.getElementById('player-validation-message');
 
   // Form 2 Elements (Resultados de ultimo torneo)
   const tournamentNameInput = document.getElementById('tournament-name-input');
@@ -38,12 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let tournamentDecklists = [];
   let currentModalTarget = null; // { section: 'global' | 'tournament', index: number }
 
-  const DEFAULT_GLOBAL = [
-    { puesto: '1', jugador: 'angel', deck: 'Nasus', puntos: '10' },
-    { puesto: '2', jugador: 'Pedro', deck: 'Teemo', puntos: '8' },
-    { puesto: '3', jugador: 'Marco', deck: "Kai'sa", puntos: '5' },
-    { puesto: '4', jugador: 'Sofia', deck: 'Jinx', puntos: '4' }
-  ];
+
 
   function extractNumber(val, defaultVal = '1') {
     if (val === null || val === undefined) return defaultVal;
@@ -60,6 +59,126 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  // Real-time input listeners to dismiss validation box on edit
+  if (playerValidationBox) {
+    [playerNicknameInput, playerNombreInput, playerCorreoInput, playerPuntosInput].forEach(inp => {
+      if (inp) {
+        inp.addEventListener('input', () => {
+          playerValidationBox.style.display = 'none';
+        });
+      }
+    });
+  }
+
+  if (btnAddPlayer) {
+    btnAddPlayer.addEventListener('click', async () => {
+      const nickname = (playerNicknameInput ? playerNicknameInput.value : '').trim();
+      const nombre = (playerNombreInput ? playerNombreInput.value : '').trim();
+      const correo = (playerCorreoInput ? playerCorreoInput.value : '').trim();
+      const tcg = (playerTcgInput ? playerTcgInput.value : (tournamentSelect ? tournamentSelect.value : 'Riftbound')).trim();
+      const puntosStr = (playerPuntosInput ? playerPuntosInput.value : '0').trim();
+
+      // Validations
+      if (!nickname) {
+        showBoxError(playerValidationBox, playerValidationMessage, 'Por favor ingresa un Nickname.');
+        if (playerNicknameInput) playerNicknameInput.focus();
+        return;
+      }
+      if (nickname.length > 64) {
+        showBoxError(playerValidationBox, playerValidationMessage, 'El Nickname no puede superar los 64 caracteres.');
+        if (playerNicknameInput) playerNicknameInput.focus();
+        return;
+      }
+
+      if (!nombre) {
+        showBoxError(playerValidationBox, playerValidationMessage, 'Por favor ingresa un Nombre.');
+        if (playerNombreInput) playerNombreInput.focus();
+        return;
+      }
+      if (nombre.length > 64) {
+        showBoxError(playerValidationBox, playerValidationMessage, 'El Nombre no puede superar los 64 caracteres.');
+        if (playerNombreInput) playerNombreInput.focus();
+        return;
+      }
+
+      if (!correo) {
+        showBoxError(playerValidationBox, playerValidationMessage, 'Por favor ingresa un Correo electrónico.');
+        if (playerCorreoInput) playerCorreoInput.focus();
+        return;
+      }
+      if (correo.length > 64) {
+        showBoxError(playerValidationBox, playerValidationMessage, 'El Correo no puede superar los 64 caracteres.');
+        if (playerCorreoInput) playerCorreoInput.focus();
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(correo)) {
+        showBoxError(playerValidationBox, playerValidationMessage, 'Por favor ingresa un formato de correo válido (ejemplo: usuario@correo.com).');
+        if (playerCorreoInput) playerCorreoInput.focus();
+        return;
+      }
+
+      const puntos = parseInt(puntosStr, 10);
+      if (isNaN(puntos) || puntos < 0 || puntos > 1000) {
+        showBoxError(playerValidationBox, playerValidationMessage, 'Puntos debe ser un número entero entre 0 y 1000.');
+        if (playerPuntosInput) playerPuntosInput.focus();
+        return;
+      }
+
+      btnAddPlayer.disabled = true;
+      btnAddPlayer.innerHTML = spinnerHtml('Agregando...');
+
+      try {
+        const response = await fetch('/api/player/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nickname, nombre, correo, tcg, puntos })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          showBoxError(playerValidationBox, playerValidationMessage, data.error || 'El usuario ya existe con este Nickname.');
+          return;
+        }
+
+        // Success
+        playerValidationBox.className = 'validation-box success';
+        playerValidationBox.style.display = 'flex';
+        playerValidationMessage.innerHTML = `
+          <div class="preview-header">🎉 ¡Jugador "${escapeHtml(nickname)}" registrado exitosamente!</div>
+          <div class="preview-detail" style="margin-top: 4px;">Nombre: ${escapeHtml(nombre)} &bull; Correo: ${escapeHtml(correo)} &bull; TCG: ${escapeHtml(tcg)} &bull; Puntos: ${puntos}</div>
+        `;
+
+        // Refresh registered players table
+        loadRegisteredPlayers(tournamentSelect ? tournamentSelect.value : tcg);
+
+        // Reset inputs
+        if (playerNicknameInput) playerNicknameInput.value = '';
+        if (playerNombreInput) playerNombreInput.value = '';
+        if (playerCorreoInput) playerCorreoInput.value = '';
+        if (playerPuntosInput) playerPuntosInput.value = '0';
+        if (playerNicknameInput) playerNicknameInput.focus();
+
+      } catch (err) {
+        console.error('Error adding player:', err);
+        showBoxError(playerValidationBox, playerValidationMessage, 'Error de conexión con el servidor al registrar el jugador.');
+      } finally {
+        btnAddPlayer.disabled = false;
+        btnAddPlayer.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="20" y1="8" x2="20" y2="14"></line>
+            <line x1="23" y1="11" x2="17" y2="11"></line>
+          </svg>
+          Agregar Jugador
+        `;
+      }
+    });
   }
 
   // Real-time input listeners to dismiss validation box on edit
@@ -158,184 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ============================================================
-  // FORM 1: RANKING GLOBAL (4 FIXED ROWS, AUTO-INCREMENTAL PUESTO)
-  // ============================================================
-  function renderGlobalRows(rowsData) {
-    globalRowsBody.innerHTML = '';
-    globalDecklists = {};
 
-    for (let i = 0; i < 4; i++) {
-      const data = rowsData[i] || DEFAULT_GLOBAL[i] || { puesto: (i + 1).toString(), jugador: '', deck: '', puntos: '10' };
-      const tr = document.createElement('tr');
-
-      const rankNumber = (i + 1).toString(); // Auto-incremental, starting at 1
-      const puntosNum = extractNumber(data.puntos, '10');
-
-      if (data.deckList) {
-        globalDecklists[i] = data.deckList;
-      }
-      const hasDecklist = globalDecklists[i] && Object.values(globalDecklists[i]).some(v => v && v.trim().length > 0);
-
-      tr.innerHTML = `
-        <td>
-          <input type="text" 
-                 class="row-input input-puesto readonly-puesto global-field-puesto" 
-                 value="${rankNumber}"
-                 readonly
-                 tabindex="-1"
-                 data-index="${i}" 
-                 title="Puesto ${rankNumber} (no editable)">
-        </td>
-        <td>
-          <input type="text" 
-                 class="row-input input-jugador global-field-jugador" 
-                 minlength="1" 
-                 maxlength="30" 
-                 required 
-                 placeholder="Nombre del jugador" 
-                 data-index="${i}" 
-                 value="${escapeHtml(data.jugador || '')}"
-                 title="Jugador (1 a 30 caracteres)">
-        </td>
-        <td>
-          <input type="text" 
-                 class="row-input input-deck global-field-deck" 
-                 minlength="1" 
-                 maxlength="40" 
-                 required 
-                 placeholder="Nombre del deck / mazo" 
-                 data-index="${i}" 
-                 value="${escapeHtml(data.deck || '')}"
-                 title="Deck (1 a 40 caracteres)">
-        </td>
-        <td>
-          <input type="number" 
-                 class="row-input input-puntos global-field-puntos" 
-                 min="1" 
-                 max="1000" 
-                 step="1" 
-                 required 
-                 placeholder="Puntos" 
-                 data-index="${i}" 
-                 value="${escapeHtml(puntosNum)}"
-                 title="Puntos (entero entre 1 y 1000)">
-        </td>
-        <td style="text-align: center;">
-          <button type="button" 
-                  class="btn-decklist ${hasDecklist ? 'has-data' : ''}" 
-                  data-section="global" 
-                  data-index="${i}" 
-                  title="Cargar Deck List para el puesto #${rankNumber}">
-            Cargar
-          </button>
-        </td>
-      `;
-
-      tr.querySelector('.btn-decklist').addEventListener('click', () => {
-        const playerName = tr.querySelector('.global-field-jugador').value.trim();
-        openDecklistModal('global', i, playerName);
-      });
-
-      globalRowsBody.appendChild(tr);
-    }
-
-    globalRowsBody.querySelectorAll('.row-input:not(.readonly-puesto)').forEach(input => {
-      input.addEventListener('input', () => {
-        globalValidationBox.style.display = 'none';
-      });
-    });
-  }
-
-  function validateGlobalRows() {
-    for (let i = 0; i < 4; i++) {
-      const jugadorInput = globalRowsBody.querySelector(`.global-field-jugador[data-index="${i}"]`);
-      const deckInput = globalRowsBody.querySelector(`.global-field-deck[data-index="${i}"]`);
-      const puntosInput = globalRowsBody.querySelector(`.global-field-puntos[data-index="${i}"]`);
-
-      const jugadorVal = jugadorInput.value.trim();
-      if (jugadorVal.length < 1 || jugadorVal.length > 30) {
-        jugadorInput.focus();
-        return { valid: false, error: `Ranking Global - Fila ${i + 1}: El nombre del jugador debe tener entre 1 y 30 caracteres.` };
-      }
-
-      const deckVal = deckInput.value.trim();
-      if (deckVal.length < 1 || deckVal.length > 40) {
-        deckInput.focus();
-        return { valid: false, error: `Ranking Global - Fila ${i + 1}: El nombre del deck debe tener entre 1 y 40 caracteres.` };
-      }
-
-      const puntosVal = parseInt(puntosInput.value, 10);
-      if (isNaN(puntosVal) || puntosVal < 1 || puntosVal > 1000) {
-        puntosInput.focus();
-        return { valid: false, error: `Ranking Global - Fila ${i + 1}: Los puntos deben ser un número entero entre 1 y 1000.` };
-      }
-    }
-
-    return { valid: true };
-  }
-
-  btnUpdateGlobal.addEventListener('click', async () => {
-    const val = validateGlobalRows();
-    if (!val.valid) {
-      showBoxError(globalValidationBox, globalValidationMessage, val.error);
-      return;
-    }
-
-    const selectedGame = tournamentSelect.value;
-    const normalizedKey = selectedGame.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    btnUpdateGlobal.disabled = true;
-    btnUpdateGlobal.innerHTML = spinnerHtml('Actualizando...');
-
-    const rows = [];
-    for (let i = 0; i < 4; i++) {
-      const puestoVal = (i + 1).toString();
-      const jugadorVal = globalRowsBody.querySelector(`.global-field-jugador[data-index="${i}"]`).value.trim();
-      const deckVal = globalRowsBody.querySelector(`.global-field-deck[data-index="${i}"]`).value.trim();
-      const puntosVal = globalRowsBody.querySelector(`.global-field-puntos[data-index="${i}"]`).value.trim();
-
-      const rowObj = {
-        puesto: puestoVal,
-        jugador: jugadorVal,
-        deck: deckVal,
-        puntos: `${puntosVal} Pts`
-      };
-
-      if (globalDecklists[i]) {
-        rowObj.deckList = globalDecklists[i];
-      }
-
-      rows.push(rowObj);
-    }
-
-    const payload = { gameKey: selectedGame, results: rows };
-
-    try {
-      await fetch('/api/tournament/upload-global', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      localStorage.setItem(`canelistico_global_${normalizedKey}`, JSON.stringify(payload));
-      showBoxSuccess(globalValidationBox, globalValidationMessage, selectedGame, 'Ranking Global');
-    } catch (err) {
-      console.error(err);
-      localStorage.setItem(`canelistico_global_${normalizedKey}`, JSON.stringify(payload));
-      showBoxSuccess(globalValidationBox, globalValidationMessage, selectedGame + ' (local)', 'Ranking Global');
-    } finally {
-      btnUpdateGlobal.disabled = false;
-      btnUpdateGlobal.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 2v6h-6"></path>
-          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-          <path d="M3 22v-6h6"></path>
-          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-        </svg>
-        Actualizar
-      `;
-    }
-  });
 
   // ============================================================
   // FORM 2: RESULTADOS DE ULTIMO TORNEO (DYNAMIC ROWS & AUTO-INCREMENTAL PUESTO)
@@ -600,7 +542,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================
   async function loadAllDataForSelectedGame(gameName) {
     const normalizedKey = gameName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    let globalRows = [...DEFAULT_GLOBAL];
     let tournamentRows = [];
     let tourneyTitle = gameName;
     let tourneyDate = 'Octubre 2026';
@@ -614,9 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tourneyTitle = data.game.title || gameName;
             tourneyDate = data.game.date || data.game.subtitle || 'Octubre 2026';
           }
-          if (Array.isArray(data.globalRanking) && data.globalRanking.length > 0) {
-            globalRows = data.globalRanking;
-          }
           if (Array.isArray(data.results) && data.results.length > 0) {
             tournamentRows = data.results;
           }
@@ -626,17 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('API lookup failed, checking localStorage fallback...', e);
     }
 
-    // Check localStorage cache
-    try {
-      const cachedGlobal = localStorage.getItem(`canelistico_global_${normalizedKey}`);
-      if (cachedGlobal) {
-        const parsed = JSON.parse(cachedGlobal);
-        if (parsed && Array.isArray(parsed.results) && parsed.results.length > 0) {
-          globalRows = parsed.results;
-        }
-      }
-    } catch (e) {}
-
+    // Check localStorage cache for tournament results fallback
     try {
       const cachedTourney = localStorage.getItem(`canelistico_${normalizedKey}`);
       if (cachedTourney) {
@@ -657,10 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tournamentDateInput.value = tourneyDate;
     }
 
-    renderGlobalRows(globalRows);
     renderTournamentRows(tournamentRows);
-
-    globalValidationBox.style.display = 'none';
     tournamentValidationBox.style.display = 'none';
   }
 
@@ -706,11 +631,343 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
+  // ── Registered Players Table (paginated max 5, editable puntos, delete, filter) ──
+  const PLAYERS_PAGE_SIZE = 5;
+  // Full list for the selected TCG. `id` is kept here only (never rendered in the DOM).
+  let playersState = [];
+  let playersCurrentPage = 1;
+  let playersCurrentTcg = '';
+  let playersSearchQuery = '';
+  let pendingDeletePlayer = null;
+
+  const playersTableBody = document.getElementById('players-table-body');
+  const playersPagination = document.getElementById('players-pagination');
+  const playersSearchInput = document.getElementById('players-search-input');
+  const playersTableValidationBox = document.getElementById('players-table-validation-box');
+  const playersTableValidationMessage = document.getElementById('players-table-validation-message');
+  const btnUpdatePlayers = document.getElementById('btn-update-players');
+  const deletePlayerModal = document.getElementById('delete-player-modal-overlay');
+  const deletePlayerModalDetail = document.getElementById('delete-player-modal-detail');
+  const btnConfirmDeletePlayer = document.getElementById('btn-confirm-delete-player');
+  const btnCloseDeletePlayerModal = document.getElementById('btn-close-delete-player-modal');
+
+  function sortPlayersState() {
+    playersState.sort((a, b) => {
+      const diff = (Number(b.puntos) || 0) - (Number(a.puntos) || 0);
+      if (diff !== 0) return diff;
+      return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+  }
+
+  function playersMessageRow(html) {
+    return `
+      <tr>
+        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 22px 14px; font-size: 13px;">
+          ${html}
+        </td>
+      </tr>
+    `;
+  }
+
+  async function loadRegisteredPlayers(selectedTcg) {
+    const tcgLabel = document.getElementById('players-table-tcg-name');
+    if (!playersTableBody) return;
+
+    if (tcgLabel) tcgLabel.textContent = selectedTcg;
+    if (selectedTcg !== playersCurrentTcg) {
+      playersCurrentPage = 1;
+      playersSearchQuery = '';
+      if (playersSearchInput) playersSearchInput.value = '';
+    }
+    playersCurrentTcg = selectedTcg;
+
+    try {
+      const res = await fetch(`/api/players?tcg=${encodeURIComponent(selectedTcg)}`);
+      const result = await res.json();
+      if (res.ok && result.success && Array.isArray(result.data)) {
+        playersState = result.data.map(p => ({ ...p, puntos: Number(p.puntos) || 0 }));
+        sortPlayersState();
+        renderPlayersTable();
+      } else {
+        playersState = [];
+        playersTableBody.innerHTML = playersMessageRow('No se pudieron cargar los jugadores.');
+        if (playersPagination) playersPagination.innerHTML = '';
+      }
+    } catch (err) {
+      console.error('Error fetching players:', err);
+      playersState = [];
+      playersTableBody.innerHTML = playersMessageRow('Error al consultar jugadores en el servidor.');
+      if (playersPagination) playersPagination.innerHTML = '';
+    }
+  }
+
+  function getFilteredPlayers() {
+    if (!playersSearchQuery) return playersState;
+    const q = playersSearchQuery.toLowerCase();
+    return playersState.filter(p => {
+      const nick = (p.nickname || '').toLowerCase();
+      const nom = (p.nombre || '').toLowerCase();
+      const mail = (p.correo || '').toLowerCase();
+      return nick.includes(q) || nom.includes(q) || mail.includes(q);
+    });
+  }
+
+  function renderPlayersTable() {
+    const countBadge = document.getElementById('players-count-badge');
+    if (!playersTableBody) return;
+
+    const filtered = getFilteredPlayers();
+    const totalMatching = filtered.length;
+    const totalAll = playersState.length;
+
+    if (countBadge) {
+      if (playersSearchQuery && totalMatching !== totalAll) {
+        countBadge.textContent = `${totalMatching} de ${totalAll} ${totalAll === 1 ? 'Jugador' : 'Jugadores'}`;
+      } else {
+        countBadge.textContent = `${totalAll} ${totalAll === 1 ? 'Jugador' : 'Jugadores'}`;
+      }
+    }
+
+    if (totalAll === 0) {
+      playersTableBody.innerHTML = playersMessageRow(
+        `No hay jugadores registrados para <strong>${escapeHtml(playersCurrentTcg)}</strong>.`
+      );
+      if (playersPagination) playersPagination.innerHTML = '';
+      return;
+    }
+
+    if (totalMatching === 0) {
+      playersTableBody.innerHTML = playersMessageRow(
+        `No se encontraron jugadores que coincidan con "<strong>${escapeHtml(playersSearchQuery)}</strong>".`
+      );
+      if (playersPagination) playersPagination.innerHTML = '';
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalMatching / PLAYERS_PAGE_SIZE));
+    if (playersCurrentPage > totalPages) playersCurrentPage = totalPages;
+    if (playersCurrentPage < 1) playersCurrentPage = 1;
+
+    const start = (playersCurrentPage - 1) * PLAYERS_PAGE_SIZE;
+    const end = Math.min(start + PLAYERS_PAGE_SIZE, totalMatching);
+
+    let rowsHtml = '';
+    for (let i = start; i < end; i++) {
+      const p = filtered[i];
+      rowsHtml += `
+        <tr>
+          <td style="font-weight: 700; color: #ffffff;">${escapeHtml(p.nickname)}</td>
+          <td style="color: #dddddd;">${escapeHtml(p.nombre)}</td>
+          <td style="color: var(--text-muted); font-size: 12px; font-family: monospace;">${escapeHtml(p.correo)}</td>
+          <td><span class="player-tcg-tag">${escapeHtml(p.tcg)}</span></td>
+          <td>
+            <input type="number" class="row-input input-puntos player-puntos-input"
+                   data-player-id="${p.id}" min="0" max="1000" step="1" value="${String(p.puntos)}">
+          </td>
+          <td style="text-align: center;">
+            <button type="button" class="btn-delete-player" data-player-id="${p.id}">Eliminar Jugador</button>
+          </td>
+        </tr>
+      `;
+    }
+    playersTableBody.innerHTML = rowsHtml;
+    renderPlayersPagination(totalPages, start, end, totalMatching);
+  }
+
+  function renderPlayersPagination(totalPages, start, end, total) {
+    if (!playersPagination) return;
+    if (totalPages <= 1) {
+      playersPagination.innerHTML = '';
+      return;
+    }
+
+    let html = `<span class="page-info">Mostrando ${start + 1}–${end} de ${total}</span>`;
+    html += `<button type="button" class="page-btn" data-page="${playersCurrentPage - 1}" ${playersCurrentPage === 1 ? 'disabled' : ''}>&lsaquo;</button>`;
+    for (let pg = 1; pg <= totalPages; pg++) {
+      html += `<button type="button" class="page-btn ${pg === playersCurrentPage ? 'active' : ''}" data-page="${pg}">${pg}</button>`;
+    }
+    html += `<button type="button" class="page-btn" data-page="${playersCurrentPage + 1}" ${playersCurrentPage === totalPages ? 'disabled' : ''}>&rsaquo;</button>`;
+    playersPagination.innerHTML = html;
+  }
+
+  // Filter input typing
+  if (playersSearchInput) {
+    playersSearchInput.addEventListener('input', (e) => {
+      playersSearchQuery = e.target.value.toLowerCase().trim();
+      playersCurrentPage = 1;
+      renderPlayersTable();
+    });
+  }
+
+  // Pagination clicks
+  if (playersPagination) {
+    playersPagination.addEventListener('click', (e) => {
+      const btn = e.target.closest('.page-btn');
+      if (!btn || btn.disabled) return;
+      const pg = parseInt(btn.dataset.page, 10);
+      if (!isNaN(pg)) {
+        playersCurrentPage = pg;
+        renderPlayersTable();
+      }
+    });
+  }
+
+  if (playersTableBody) {
+    // Keep edited puntos in memory so edits survive page/filter changes
+    playersTableBody.addEventListener('input', (e) => {
+      const inp = e.target.closest('.player-puntos-input');
+      if (!inp) return;
+      const playerId = parseInt(inp.dataset.playerId, 10);
+      const p = playersState.find(x => x.id === playerId);
+      if (p) {
+        p.puntos = inp.value === '' ? '' : parseInt(inp.value, 10);
+      }
+      if (playersTableValidationBox) playersTableValidationBox.style.display = 'none';
+    });
+
+    // Open delete confirmation modal
+    playersTableBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-delete-player');
+      if (!btn) return;
+      const playerId = parseInt(btn.dataset.playerId, 10);
+      const p = playersState.find(x => x.id === playerId);
+      if (!p) return;
+      pendingDeletePlayer = p;
+      if (deletePlayerModalDetail) {
+        deletePlayerModalDetail.textContent = `${p.nickname} • ${p.tcg}`;
+      }
+      if (deletePlayerModal) deletePlayerModal.classList.add('active');
+    });
+  }
+
+  function closeDeletePlayerModal() {
+    pendingDeletePlayer = null;
+    if (deletePlayerModal) deletePlayerModal.classList.remove('active');
+  }
+
+  if (btnCloseDeletePlayerModal) {
+    btnCloseDeletePlayerModal.addEventListener('click', closeDeletePlayerModal);
+  }
+  if (deletePlayerModal) {
+    deletePlayerModal.addEventListener('click', (e) => {
+      if (e.target === deletePlayerModal) closeDeletePlayerModal();
+    });
+  }
+
+  if (btnConfirmDeletePlayer) {
+    btnConfirmDeletePlayer.addEventListener('click', async () => {
+      if (!pendingDeletePlayer) {
+        closeDeletePlayerModal();
+        return;
+      }
+      const p = pendingDeletePlayer;
+
+      btnConfirmDeletePlayer.disabled = true;
+      try {
+        const res = await fetch('/api/player/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: p.id })
+        });
+        const data = await res.json();
+        closeDeletePlayerModal();
+
+        if (!res.ok || !data.success) {
+          showBoxError(playersTableValidationBox, playersTableValidationMessage, data.error || 'No se pudo eliminar al jugador.');
+          return;
+        }
+
+        // Remove only this exact record from memory
+        playersState = playersState.filter(x => x.id !== p.id);
+        renderPlayersTable();
+        updateGlobalRankingFromPlayers();
+
+        playersTableValidationBox.className = 'validation-box success';
+        playersTableValidationBox.style.display = 'flex';
+        playersTableValidationMessage.innerHTML = `
+          <div class="preview-header">Jugador "${escapeHtml(p.nickname)}" eliminado de ${escapeHtml(p.tcg)}.</div>
+        `;
+      } catch (err) {
+        console.error('Error deleting player:', err);
+        closeDeletePlayerModal();
+        showBoxError(playersTableValidationBox, playersTableValidationMessage, 'Error de conexión al eliminar el jugador.');
+      } finally {
+        btnConfirmDeletePlayer.disabled = false;
+      }
+    });
+  }
+
+  // Bulk update of puntos for ALL players of the selected TCG (all pages)
+  if (btnUpdatePlayers) {
+    const updateBtnHtml = btnUpdatePlayers.innerHTML;
+    btnUpdatePlayers.addEventListener('click', async () => {
+      if (playersState.length === 0) {
+        showBoxError(playersTableValidationBox, playersTableValidationMessage, 'No hay jugadores para actualizar.');
+        return;
+      }
+
+      // Validate every player, including those on non-visible pages
+      for (let i = 0; i < playersState.length; i++) {
+        const pts = playersState[i].puntos;
+        if (pts === '' || !Number.isInteger(pts) || pts < 0 || pts > 1000) {
+          playersCurrentPage = Math.floor(i / PLAYERS_PAGE_SIZE) + 1;
+          renderPlayersTable();
+          const inp = playersTableBody.querySelector(`.player-puntos-input[data-index="${i}"]`);
+          if (inp) inp.focus();
+          showBoxError(
+            playersTableValidationBox,
+            playersTableValidationMessage,
+            `Puntos de "${escapeHtml(playersState[i].nickname)}" debe ser un número entero entre 0 y 1000.`
+          );
+          return;
+        }
+      }
+
+      btnUpdatePlayers.disabled = true;
+      btnUpdatePlayers.innerHTML = spinnerHtml('Actualizando...');
+
+      try {
+        const res = await fetch('/api/players/update-points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates: playersState.map(p => ({ id: p.id, puntos: p.puntos })) })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          showBoxError(playersTableValidationBox, playersTableValidationMessage, data.error || 'No se pudieron actualizar los jugadores.');
+          return;
+        }
+
+        playersTableValidationBox.className = 'validation-box success';
+        playersTableValidationBox.style.display = 'flex';
+        playersTableValidationMessage.innerHTML = `
+          <div class="preview-header">🎉 ¡${data.updated} jugador(es) de ${escapeHtml(playersCurrentTcg)} actualizados!</div>
+        `;
+        await loadRegisteredPlayers(playersCurrentTcg);
+      } catch (err) {
+        console.error('Error updating players:', err);
+        showBoxError(playersTableValidationBox, playersTableValidationMessage, 'Error de conexión al actualizar los jugadores.');
+      } finally {
+        btnUpdatePlayers.disabled = false;
+        btnUpdatePlayers.innerHTML = updateBtnHtml;
+      }
+    });
+  }
+
   // Handle tournament dropdown changes
   tournamentSelect.addEventListener('change', () => {
+    if (playerTcgInput) {
+      playerTcgInput.value = tournamentSelect.value;
+    }
     loadAllDataForSelectedGame(tournamentSelect.value);
+    loadRegisteredPlayers(tournamentSelect.value);
   });
 
   // Initial load
+  if (playerTcgInput) {
+    playerTcgInput.value = tournamentSelect.value;
+  }
   loadAllDataForSelectedGame(tournamentSelect.value);
+  loadRegisteredPlayers(tournamentSelect.value);
 });

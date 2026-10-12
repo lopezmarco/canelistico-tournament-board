@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pageTitle = document.querySelector('title');
   const tableBody = document.getElementById('table-body');
   const globalBody = document.getElementById('global-ranking-body');
+  const globalPaginationEl = document.getElementById('global-ranking-pagination');
+  const globalSearchInput = document.getElementById('global-search');
+  const globalCountBadgeEl = document.getElementById('global-ranking-count-badge');
   const totalCountEl = document.getElementById('total-rows-count');
   const searchInput = document.getElementById('player-search');
 
@@ -24,6 +27,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const decklistViewTitle = document.getElementById('decklist-view-title');
   const decklistViewSubtitle = document.getElementById('decklist-view-subtitle');
   const viewDecklistCombinedText = document.getElementById('view-decklist-combined-text');
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   function formatDecklistText(deckData) {
     if (!deckData || typeof deckData !== 'object') {
@@ -116,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentTitle = gameName;
   let currentSubtitle = 'Torneo Semanal - Clasificación General';
   let tournamentData = generateDefaultRows();
-  let globalRankingData = [...DEFAULT_GLOBAL];
+  let globalRankingData = [];
 
   // 2. Fetch loaded tournament results (from API or localStorage cache)
   try {
@@ -128,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentTitle = data.game.title || gameName;
         currentSubtitle = data.game.subtitle || data.game.date || 'Octubre 2026';
       }
-      if (data && Array.isArray(data.globalRanking) && data.globalRanking.length > 0) {
+      if (data && Array.isArray(data.globalRanking)) {
         globalRankingData = data.globalRanking;
       }
     }
@@ -149,16 +162,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch (err) {}
 
-  try {
-    const cachedGlobal = localStorage.getItem(`canelistico_global_${normalizedKey}`);
-    if (cachedGlobal) {
-      const parsedG = JSON.parse(cachedGlobal);
-      if (parsedG && Array.isArray(parsedG.results) && parsedG.results.length > 0) {
-        globalRankingData = parsedG.results;
-      }
-    }
-  } catch (err) {}
-
   // Apply title and subtitle for the tournament table
   if (titleElement) {
     titleElement.textContent = currentTitle;
@@ -170,53 +173,138 @@ document.addEventListener('DOMContentLoaded', async () => {
     pageTitle.textContent = `${currentTitle} - Resultados de Torneo | Canelistico`;
   }
 
-  // Render Ranking Global — MUST ALWAYS SHOW EXACTLY 4 ROWS
-  function renderGlobalRanking(data) {
-    if (!globalBody) return;
-    globalBody.innerHTML = '';
-    const rankClasses = ['top-1', 'top-2', 'top-3', ''];
+  // ── Ranking Global State (Paginated 4 per page, filtered by Nickname) ──
+  const GLOBAL_PAGE_SIZE = 4;
+  let globalCurrentPage = 1;
+  let globalSearchQuery = '';
 
-    // Construct exactly 4 rows: use uploaded rows first, fill missing with defaults
-    const rowsToRender = [];
-    for (let i = 0; i < 4; i++) {
-      if (data && data[i] && data[i].jugador) {
-        rowsToRender.push(data[i]);
-      } else {
-        rowsToRender.push(DEFAULT_GLOBAL[i]);
-      }
-    }
-
-    rowsToRender.forEach((row, i) => {
-      const tr = document.createElement('tr');
-      const badgeClass = rankClasses[i] || '';
-      const initialChar = row.jugador ? row.jugador.charAt(0).toUpperCase() : '?';
-      const hasDecklist = row.deckList && Object.values(row.deckList).some(v => v && v.trim().length > 0);
-
-      tr.innerHTML = `
-        <td><span class="rank-badge ${badgeClass}">#${row.puesto || (i + 1)}</span></td>
-        <td>
-          <div class="player-cell">
-            <div class="player-avatar">${initialChar}</div>
-            <span>${row.jugador}</span>
-          </div>
-        </td>
-        <td>
-          <a href="javascript:void(0)" class="deck-tag deck-link ${hasDecklist ? 'has-decklist' : ''}" title="Ver Deck List de ${row.jugador}">
-            ${row.deck}
-          </a>
-        </td>
-        <td>${row.puntos}</td>
-      `;
-
-      tr.querySelector('.deck-link').addEventListener('click', () => {
-        openDecklistView(row, i + 1);
-      });
-
-      globalBody.appendChild(tr);
+  function getFilteredGlobalRanking() {
+    if (!globalSearchQuery) return globalRankingData;
+    const q = globalSearchQuery.toLowerCase();
+    return globalRankingData.filter(item => {
+      const name = (item.nickname || item.jugador || '').toLowerCase();
+      return name.includes(q);
     });
   }
 
-  renderGlobalRanking(globalRankingData);
+  function renderGlobalRanking() {
+    if (!globalBody) return;
+    globalBody.innerHTML = '';
+
+    const filtered = getFilteredGlobalRanking();
+    const totalMatching = filtered.length;
+    const totalAll = globalRankingData.length;
+
+    if (globalCountBadgeEl) {
+      if (globalSearchQuery && totalMatching !== totalAll) {
+        globalCountBadgeEl.textContent = `(${totalMatching} de ${totalAll} jugadores)`;
+      } else if (totalAll > 0) {
+        globalCountBadgeEl.textContent = `(${totalAll} ${totalAll === 1 ? 'jugador' : 'jugadores'})`;
+      } else {
+        globalCountBadgeEl.textContent = '';
+      }
+    }
+
+    if (totalAll === 0) {
+      globalBody.innerHTML = `
+        <tr>
+          <td colspan="3" style="text-align: center; padding: 24px; color: var(--text-muted);">
+            No hay jugadores registrados para este torneo.
+          </td>
+        </tr>
+      `;
+      if (globalPaginationEl) globalPaginationEl.innerHTML = '';
+      return;
+    }
+
+    if (totalMatching === 0) {
+      globalBody.innerHTML = `
+        <tr>
+          <td colspan="3" style="text-align: center; padding: 24px; color: var(--text-muted);">
+            No se encontraron jugadores que coincidan con "${escapeHtml(globalSearchQuery)}".
+          </td>
+        </tr>
+      `;
+      if (globalPaginationEl) globalPaginationEl.innerHTML = '';
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalMatching / GLOBAL_PAGE_SIZE));
+    if (globalCurrentPage > totalPages) globalCurrentPage = totalPages;
+    if (globalCurrentPage < 1) globalCurrentPage = 1;
+
+    const start = (globalCurrentPage - 1) * GLOBAL_PAGE_SIZE;
+    const end = Math.min(start + GLOBAL_PAGE_SIZE, totalMatching);
+    const pageRows = filtered.slice(start, end);
+
+    pageRows.forEach((row, i) => {
+      const overallRank = start + i + 1;
+      let badgeClass = '';
+      if (overallRank === 1) badgeClass = 'top-1';
+      else if (overallRank === 2) badgeClass = 'top-2';
+      else if (overallRank === 3) badgeClass = 'top-3';
+
+      const displayName = row.nickname || row.jugador || '—';
+      const initialChar = (displayName && displayName !== '—') ? displayName.charAt(0).toUpperCase() : '?';
+      const puntosStr = row.puntos ? (row.puntos.toString().includes('Pts') ? row.puntos : `${row.puntos} Pts`) : '0 Pts';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="rank-badge ${badgeClass}">#${row.puesto || overallRank}</span></td>
+        <td>
+          <div class="player-cell">
+            <div class="player-avatar">${initialChar}</div>
+            <span style="font-weight: 700; color: #ffffff;">${escapeHtml(displayName)}</span>
+          </div>
+        </td>
+        <td>${escapeHtml(puntosStr)}</td>
+      `;
+
+      globalBody.appendChild(tr);
+    });
+
+    renderGlobalPagination(totalPages, start, end, totalMatching);
+  }
+
+  function renderGlobalPagination(totalPages, start, end, total) {
+    if (!globalPaginationEl) return;
+    if (totalPages <= 1) {
+      globalPaginationEl.innerHTML = '';
+      return;
+    }
+
+    let html = `<span class="page-info">Mostrando ${start + 1}–${end} de ${total}</span>`;
+    html += `<button type="button" class="page-btn" data-page="${globalCurrentPage - 1}" ${globalCurrentPage === 1 ? 'disabled' : ''}>&lsaquo;</button>`;
+    for (let pg = 1; pg <= totalPages; pg++) {
+      html += `<button type="button" class="page-btn ${pg === globalCurrentPage ? 'active' : ''}" data-page="${pg}">${pg}</button>`;
+    }
+    html += `<button type="button" class="page-btn" data-page="${globalCurrentPage + 1}" ${globalCurrentPage === totalPages ? 'disabled' : ''}>&rsaquo;</button>`;
+    globalPaginationEl.innerHTML = html;
+  }
+
+  // Global Ranking filter input listener
+  if (globalSearchInput) {
+    globalSearchInput.addEventListener('input', (e) => {
+      globalSearchQuery = e.target.value.toLowerCase().trim();
+      globalCurrentPage = 1;
+      renderGlobalRanking();
+    });
+  }
+
+  // Global Ranking pagination click listener
+  if (globalPaginationEl) {
+    globalPaginationEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.page-btn');
+      if (!btn || btn.disabled) return;
+      const pg = parseInt(btn.dataset.page, 10);
+      if (!isNaN(pg)) {
+        globalCurrentPage = pg;
+        renderGlobalRanking();
+      }
+    });
+  }
+
+  renderGlobalRanking();
 
   function generateDefaultRows() {
     const rows = [];

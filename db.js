@@ -61,9 +61,49 @@ function initSchema() {
       FOREIGN KEY (game_key) REFERENCES tournaments(game_key) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS players (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nickname TEXT NOT NULL COLLATE NOCASE,
+      nombre TEXT NOT NULL,
+      correo TEXT NOT NULL,
+      tcg TEXT NOT NULL COLLATE NOCASE,
+      puntos INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(nickname, tcg)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_global_game_key ON global_rankings(game_key);
     CREATE INDEX IF NOT EXISTS idx_results_game_key ON tournament_results(game_key);
+    CREATE INDEX IF NOT EXISTS idx_players_nickname_tcg ON players(nickname, tcg);
   `);
+
+  // Auto-migration: update players table constraint to composite UNIQUE(nickname, tcg) if using old schema
+  try {
+    const playersTableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='players'").get();
+    if (playersTableInfo && playersTableInfo.sql && playersTableInfo.sql.includes('nickname TEXT NOT NULL UNIQUE')) {
+      db.exec(`
+        CREATE TABLE players_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          nickname TEXT NOT NULL COLLATE NOCASE,
+          nombre TEXT NOT NULL,
+          correo TEXT NOT NULL,
+          tcg TEXT NOT NULL COLLATE NOCASE,
+          puntos INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(nickname, tcg)
+        );
+        INSERT OR IGNORE INTO players_new (id, nickname, nombre, correo, tcg, puntos, created_at)
+          SELECT id, nickname, nombre, correo, tcg, puntos, created_at FROM players;
+        DROP TABLE players;
+        ALTER TABLE players_new RENAME TO players;
+        DROP INDEX IF EXISTS idx_players_nickname;
+        CREATE INDEX IF NOT EXISTS idx_players_nickname_tcg ON players(nickname, tcg);
+      `);
+      console.log('Migration completed: players table updated to UNIQUE(nickname, tcg)');
+    }
+  } catch (mErr) {
+    console.error('Migration error for players table:', mErr.message);
+  }
 }
 
 const DEFAULT_GAMES = {
@@ -227,34 +267,20 @@ function getTournament(gameKey) {
     tourney = db.prepare('SELECT * FROM tournaments WHERE game_key = ?').get(normalizedKey);
   }
 
-  // Get Global Ranking rows
-  const globalRows = db.prepare('SELECT * FROM global_rankings WHERE game_key = ? ORDER BY id ASC').all(normalizedKey);
-  const globalRanking = globalRows.map(r => ({
-    puesto: r.puesto,
-    jugador: r.jugador,
-    deck: r.deck,
-    puntos: r.puntos,
-    deckList: {
-      legend: r.legend || '',
-      champion: r.champion || '',
-      battlefields: r.battlefields || '',
-      runes: r.runes || '',
-      units: r.units || '',
-      spells: r.spells || '',
-      gears: r.gears || '',
-      sideboard: r.sideboard || ''
-    }
-  }));
+  // Get Global Ranking rows: All players registered for this TCG in players table, ordered by puntos DESC
+  const allTcgPlayers = db.prepare(`
+    SELECT id, nickname, nombre, puntos, tcg 
+    FROM players 
+    WHERE LOWER(tcg) = LOWER(?) OR LOWER(tcg) = LOWER(?)
+    ORDER BY puntos DESC, id ASC
+  `).all(tourney.name, normalizedKey);
 
-  // Pad global ranking with defaults if less than 4
-  const finalGlobal = [];
-  for (let i = 0; i < 4; i++) {
-    if (globalRanking[i] && globalRanking[i].jugador) {
-      finalGlobal.push(globalRanking[i]);
-    } else {
-      finalGlobal.push(DEFAULT_GLOBAL_ROWS[i]);
-    }
-  }
+  const finalGlobal = allTcgPlayers.map((p, idx) => ({
+    puesto: (idx + 1).toString(),
+    nickname: p.nickname || p.nombre || '—',
+    jugador: p.nickname || p.nombre || '—',
+    puntos: `${p.puntos} Pts`
+  }));
 
   // Get Tournament Results rows
   const resultsRows = db.prepare('SELECT * FROM tournament_results WHERE game_key = ? ORDER BY id ASC').all(normalizedKey);
@@ -394,6 +420,97 @@ function saveTournamentResults(gameKey, title, date, results) {
   return getTournament(normalizedKey);
 }
 
+function addPlayer({ nickname, nombre, correo, tcg, puntos }) {
+  const cleanNick = (nickname || '').trim();
+  const cleanNombre = (nombre || '').trim();
+  const cleanCorreo = (correo || '').trim().toLowerCase();
+  const cleanTcg = (tcg || '').trim();
+  const numPuntos = Math.min(1000, Math.max(0, parseInt(puntos, 10) || 0));
+
+  // Check if player with same (nickname, tcg) pair already exists (case-insensitive)
+  const existing = db.prepare(`
+    SELECT id FROM players 
+    WHERE LOWER(nickname) = LOWER(?) AND LOWER(tcg) = LOWER(?)
+  `).get(cleanNick, cleanTcg);
+
+  if (existing) {
+    return { success: false, error: 'El usuario ya existe con este Nickname.' };
+  }
+
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO players (nickname, nombre, correo, tcg, puntos, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `);
+
+    const result = stmt.run(cleanNick, cleanNombre, cleanCorreo, cleanTcg, numPuntos);
+    return {
+      success: true,
+      player: {
+        id: Number(result.lastInsertRowid),
+        nickname: cleanNick,
+        nombre: cleanNombre,
+        correo: cleanCorreo,
+        tcg: cleanTcg,
+        puntos: numPuntos
+      }
+    };
+  } catch (err) {
+    if (err.message && err.message.includes('UNIQUE')) {
+      return { success: false, error: 'El usuario ya existe con este Nickname.' };
+    }
+    throw err;
+  }
+}
+
+function getPlayers(tcgFilter) {
+  if (tcgFilter && typeof tcgFilter === 'string' && tcgFilter.trim()) {
+    const cleanTcg = tcgFilter.trim();
+    return db.prepare(`
+      SELECT id, nickname, nombre, correo, tcg, puntos, created_at 
+      FROM players 
+      WHERE LOWER(tcg) = LOWER(?) 
+      ORDER BY puntos DESC, id ASC
+    `).all(cleanTcg);
+  }
+  return db.prepare('SELECT id, nickname, nombre, correo, tcg, puntos, created_at FROM players ORDER BY puntos DESC, id ASC').all();
+}
+
+// Deletes exactly one player by its primary key (never by nickname)
+function deletePlayer(id) {
+  const numId = parseInt(id, 10);
+  if (!Number.isInteger(numId) || numId <= 0) {
+    return { success: false, error: 'Identificador de jugador inválido.' };
+  }
+  const result = db.prepare('DELETE FROM players WHERE id = ?').run(numId);
+  if (result.changes === 0) {
+    return { success: false, error: 'El jugador no existe o ya fue eliminado.' };
+  }
+  return { success: true };
+}
+
+// Bulk-updates puntos for a list of { id, puntos } inside a single transaction
+function updatePlayersPoints(updates) {
+  const stmt = db.prepare('UPDATE players SET puntos = ? WHERE id = ?');
+  let updated = 0;
+  db.exec('BEGIN');
+  try {
+    for (const u of updates) {
+      const numId = parseInt(u.id, 10);
+      const pts = parseInt(u.puntos, 10);
+      if (!Number.isInteger(numId) || numId <= 0 || isNaN(pts) || pts < 0 || pts > 1000) {
+        throw new Error('Datos de actualización inválidos.');
+      }
+      updated += Number(stmt.run(pts, numId).changes);
+    }
+    db.exec('COMMIT');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    return { success: false, error: err.message };
+  }
+  return { success: true, updated };
+}
+
 // Initialize on require
 initSchema();
 seedInitialData();
@@ -402,5 +519,9 @@ module.exports = {
   db,
   getTournament,
   saveGlobalRanking,
-  saveTournamentResults
+  saveTournamentResults,
+  addPlayer,
+  getPlayers,
+  deletePlayer,
+  updatePlayersPoints
 };
