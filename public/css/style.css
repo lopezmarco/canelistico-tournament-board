@@ -216,6 +216,30 @@ body::after {
 .game-card[data-game="digimon"] {}
 .game-card[data-game="lorcana"] {}
 
+/* Disabled Game Card */
+.game-card.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(85%);
+  pointer-events: none;
+}
+
+.game-card.disabled:hover {
+  background: var(--bg-card);
+}
+
+.game-card.disabled::after {
+  display: none !important;
+}
+
+.game-card.disabled:hover .game-icon-container {
+  transform: none;
+}
+
+.game-card.disabled:hover .game-title {
+  color: var(--text-secondary);
+}
+
 /* Footer note inside modal */
 .modal-footer {
   text-align: center;
@@ -1508,11 +1532,13 @@ body::after {
 }
 
 .decklist-card-img-container {
+  --card-w: 260px;
+  --card-h: 364px;
   position: relative;
-  width: 260px;
-  height: 364px;
-  min-width: 260px;
-  min-height: 364px;
+  width: var(--card-w);
+  height: var(--card-h);
+  min-width: var(--card-w);
+  min-height: var(--card-h);
   background: #000000;
   border: 1px solid #222222;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -1533,14 +1559,19 @@ body::after {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* Rotate horizontal cards (e.g. battlefields) to be vertical */
+/* Rotate horizontal cards (e.g. battlefields) to be vertical and fit the fixed size without cropping */
 .decklist-card-img.is-rotated {
-  transform: rotate(90deg);
-  width: calc(100% * 1.4);
-  height: calc(100% / 1.4);
-  max-width: none;
-  max-height: none;
-  object-fit: cover;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--card-h) !important;
+  height: var(--card-w) !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  transform: translate(-50%, -50%) rotate(90deg);
+  object-fit: contain;
   flex-shrink: 0;
 }
 
