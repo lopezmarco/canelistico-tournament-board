@@ -1449,24 +1449,27 @@ body::after {
   font-size: 12px;
 }
 
-/* Clickable word links in deck rows */
+/* Clickable row/word links in deck rows */
+.deck-row-link,
 .deck-word-link {
   color: #38bdf8;
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
-  padding: 1px 3px;
+  padding: 1px 4px;
   border-radius: 2px;
   transition: all 0.15s ease;
-  display: inline;
+  display: inline-block;
 }
 
+.deck-row-link:hover,
 .deck-word-link:hover {
   background: rgba(56, 189, 248, 0.15);
   color: #7dd3fc;
   text-decoration-color: #7dd3fc;
 }
 
+.deck-row-link.active-card-row,
 .deck-word-link.active-card-word {
   background: #0284c7;
   color: #ffffff;
@@ -1524,7 +1527,17 @@ body::after {
   object-fit: cover;
   display: block;
   background-color: #000000;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Rotate horizontal cards (e.g. battlefields) to be vertical */
+.decklist-card-img.is-rotated {
+  transform: rotate(90deg);
+  width: calc(100% * 1.4);
+  height: calc(100% / 1.4);
+  max-width: none;
+  max-height: none;
+  flex-shrink: 0;
 }
 
 .decklist-card-loading {

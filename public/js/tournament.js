@@ -36,6 +36,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Solid black placeholder image
   const BLACK_IMAGE = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420'%3E%3Crect width='300' height='420' fill='%23000000'/%3E%3C/svg%3E";
 
+  // Automatically rotate horizontal cards (e.g. battlefields) to vertical
+  if (decklistCardPreviewImg) {
+    decklistCardPreviewImg.addEventListener('load', () => {
+      if (decklistCardPreviewImg.naturalWidth > decklistCardPreviewImg.naturalHeight) {
+        decklistCardPreviewImg.classList.add('is-rotated');
+      } else {
+        decklistCardPreviewImg.classList.remove('is-rotated');
+      }
+    });
+  }
+
   let activeCardLookupController = null;
 
   function escapeHtml(str) {
@@ -72,51 +83,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     return formatted.join('\n\n');
   }
 
-  async function handleDeckWordClick(word, rowLine, linkEl) {
+  async function handleDeckRowClick(rowText, linkEl) {
     if (activeCardLookupController) {
       activeCardLookupController.abort();
     }
     activeCardLookupController = new AbortController();
     const signal = activeCardLookupController.signal;
 
-    // Highlight clicked link
-    document.querySelectorAll('.deck-word-link.active-card-word').forEach(el => el.classList.remove('active-card-word'));
-    if (linkEl) linkEl.classList.add('active-card-word');
+    // Highlight clicked row link
+    document.querySelectorAll('.deck-row-link.active-card-row, .deck-word-link.active-card-word').forEach(el => {
+      el.classList.remove('active-card-row', 'active-card-word');
+    });
+    if (linkEl) {
+      linkEl.classList.add('active-card-row', 'active-card-word');
+    }
 
-    // Clean word from leading/trailing punctuation for searching
-    const cleanWord = word.replace(/^[^\w\u00C0-\u017F]+|[^\w\u00C0-\u017F]+$/g, '').trim();
-    const searchWord = cleanWord || word.trim();
+    const cardName = (rowText || '').trim();
 
-    if (!searchWord) {
+    if (!cardName) {
       if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
-      if (decklistCardInfoText) decklistCardInfoText.textContent = 'Palabra no válida';
+      if (decklistCardInfoText) decklistCardInfoText.textContent = 'Fila vacía';
       return;
     }
 
-    if (decklistCardTitleBadge) decklistCardTitleBadge.textContent = searchWord.toUpperCase();
+    if (decklistCardTitleBadge) decklistCardTitleBadge.textContent = cardName.toUpperCase();
     if (decklistCardLoading) decklistCardLoading.style.display = 'flex';
-    if (decklistCardInfoText) decklistCardInfoText.textContent = `Buscando "${searchWord}"...`;
+    if (decklistCardInfoText) decklistCardInfoText.textContent = `Buscando "${cardName}" en Riftbound...`;
 
     try {
-      // 1. Query the API with the clicked word
-      let res = await fetch(`/api/card-image?name=${encodeURIComponent(searchWord)}`, { signal });
+      // Query the API using the ENTIRE text content of this row as the card name
+      let res = await fetch(`/api/card-image?name=${encodeURIComponent(cardName)}`, { signal });
       let data = res.ok ? await res.json() : null;
-
-      // 2. If no image found and rowLine has additional words, try the cleaned row as fallback
-      if ((!data || !data.imageUrl) && rowLine) {
-        const cleanRow = rowLine.replace(/^\s*\d+[\s\-\.:xX]*/, '').trim();
-        if (cleanRow && cleanRow.toLowerCase() !== searchWord.toLowerCase()) {
-          try {
-            const rowRes = await fetch(`/api/card-image?name=${encodeURIComponent(cleanRow)}`, { signal });
-            if (rowRes.ok) {
-              const rowData = await rowRes.json();
-              if (rowData && rowData.imageUrl) {
-                data = rowData;
-              }
-            }
-          } catch (_) {}
-        }
-      }
 
       if (data && data.imageUrl) {
         if (decklistCardPreviewImg) {
@@ -128,16 +125,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (decklistCardInfoText) {
           decklistCardInfoText.textContent = data.details?.name 
             ? `${data.details.name}${data.details.cardCode ? ` (${data.details.cardCode})` : ''}` 
-            : `Carta: ${searchWord}`;
+            : `Carta: ${cardName}`;
         }
       } else {
-        // "If no card is found using the words in each row a black image will show instead."
+        // If no card is found in Riftbound, show solid black image
         if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
-        if (decklistCardInfoText) decklistCardInfoText.textContent = `No se encontró carta para "${searchWord}"`;
+        if (decklistCardInfoText) decklistCardInfoText.textContent = `No se encontró carta para "${cardName}"`;
       }
     } catch (err) {
       if (err.name === 'AbortError') return;
-      console.warn('Error fetching card image:', err);
+      console.warn('Error fetching Riftbound card:', err);
       if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
       if (decklistCardInfoText) decklistCardInfoText.textContent = 'No se encontró carta';
     } finally {
@@ -192,29 +189,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           const rowEl = document.createElement('div');
           rowEl.className = 'decklist-row-line';
 
-          // Split line into words while preserving whitespace
-          const tokens = line.split(/(\s+)/);
-          tokens.forEach(token => {
-            if (/^\s+$/.test(token)) {
-              rowEl.appendChild(document.createTextNode(token));
-            } else if (token) {
-              const link = document.createElement('a');
-              link.href = 'javascript:void(0)';
-              link.className = 'deck-word-link';
-              link.textContent = token;
-              link.title = `Buscar carta: ${token}`;
-              link.setAttribute('data-word', token);
-              link.setAttribute('data-row', line);
+          // All words in each row form the card name link
+          const link = document.createElement('a');
+          link.href = 'javascript:void(0)';
+          link.className = 'deck-row-link deck-word-link';
+          link.textContent = line;
+          link.title = `Buscar carta Riftbound: ${line}`;
+          link.setAttribute('data-card-name', line);
 
-              link.addEventListener('click', (e) => {
-                e.preventDefault();
-                handleDeckWordClick(token, line, link);
-              });
-
-              rowEl.appendChild(link);
-            }
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleDeckRowClick(line, link);
           });
 
+          rowEl.appendChild(link);
           secBlock.appendChild(rowEl);
         });
       }
@@ -240,6 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Reset preview image to black image
     if (decklistCardPreviewImg) {
+      decklistCardPreviewImg.classList.remove('is-rotated');
       decklistCardPreviewImg.src = BLACK_IMAGE;
     }
     if (decklistCardTitleBadge) {

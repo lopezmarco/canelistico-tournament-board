@@ -309,46 +309,61 @@ const server = http.createServer((req, res) => {
         console.warn('Error querying Riot API:', err);
       }
 
-      // 2. Full real card image resolution for 'Inferna' and Riot cards
-      const normalizedQuery = queryName.toLowerCase().replace(/['"’]/g, '').trim();
+      // 2. Search Riftbound card database dynamically (RIFTBOUND ONLY, no Runeterra, no local image storage)
+      if (!imageUrl) {
+        const cleanQuery = queryName.replace(/^[\d\sxX\-.:]+/, '').trim();
+        const queriesToTry = [queryName];
+        if (cleanQuery && cleanQuery.toLowerCase() !== queryName.toLowerCase()) {
+          queriesToTry.push(cleanQuery);
+        }
 
-      if (!imageUrl && (normalizedQuery === 'inferna' || normalizedQuery.includes('inferna'))) {
-        imageUrl = '/images/inferna_card.jpg';
-        source = 'Riftbound: League of Legends TCG (Unleashed #002/219)';
-        itemDetails = {
-          cardCode: 'UNL • 002/219',
-          name: 'Inferna',
-          type: 'Unit • Bilgewater',
-          cost: '2 Energy • 1 Might',
-          game: 'Riftbound (Riot Games)',
-          artist: 'Kudos Productions • ©2026RGI',
-          cardImage: '/images/inferna_card.jpg',
-          remoteUrl: 'https://tcgplayer-cdn.tcgplayer.com/product/684213_in_1000x1000.jpg'
-        };
-      } else if (!imageUrl && normalizedQuery === 'viktor') {
-        imageUrl = 'https://dd.b.pvp.net/latest/set3/en_us/img/cards/03PZ003.png';
-        source = 'Legends of Runeterra: Viktor (03PZ003)';
-        itemDetails = { name: 'Viktor', cardCode: '03PZ003', type: 'Champion • Piltover & Zaun' };
-      } else if (!imageUrl && normalizedQuery === 'teemo') {
-        imageUrl = 'https://dd.b.pvp.net/latest/set1/en_us/img/cards/01PZ008.png';
-        source = 'Legends of Runeterra: Teemo (01PZ008)';
-        itemDetails = { name: 'Teemo', cardCode: '01PZ008', type: 'Champion • Piltover & Zaun' };
-      } else if (!imageUrl && normalizedQuery === 'jinx') {
-        imageUrl = 'https://dd.b.pvp.net/latest/set1/en_us/img/cards/01PZ040.png';
-        source = 'Legends of Runeterra: Jinx (01PZ040)';
-        itemDetails = { name: 'Jinx', cardCode: '01PZ040', type: 'Champion • Piltover & Zaun' };
-      } else if (!imageUrl && (normalizedQuery === 'kaisa' || normalizedQuery === 'kai sa')) {
-        imageUrl = 'https://dd.b.pvp.net/latest/set6/en_us/img/cards/06SH009.png';
-        source = 'Legends of Runeterra: Kai\'Sa (06SH009)';
-        itemDetails = { name: "Kai'Sa", cardCode: '06SH009', type: 'Champion • Shurima' };
-      } else if (!imageUrl && normalizedQuery === 'nasus') {
-        imageUrl = 'https://dd.b.pvp.net/latest/set4/en_us/img/cards/04SH047.png';
-        source = 'Legends of Runeterra: Nasus (04SH047)';
-        itemDetails = { name: 'Nasus', cardCode: '04SH047', type: 'Champion • Shurima' };
-      } else if (!imageUrl && normalizedQuery === 'discipline') {
-        imageUrl = 'https://dd.b.pvp.net/latest/set1/en_us/img/cards/01IO012.png';
-        source = 'Legends of Runeterra: Twin Disciplines (01IO012)';
-        itemDetails = { name: 'Twin Disciplines', cardCode: '01IO012', type: 'Spell • Ionia' };
+        for (const q of queriesToTry) {
+          try {
+            const riftRes = await httpsGet(
+              `https://api.rifthunt.com/cards/search?q=${encodeURIComponent(q)}`,
+              { 'User-Agent': 'CanelisticoTCG/1.0' }
+            );
+            if (riftRes.statusCode === 200 && riftRes.body) {
+              let parsed = null;
+              try { parsed = JSON.parse(riftRes.body); } catch (_) {}
+              if (parsed && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                const qLower = q.toLowerCase();
+                // Priority 1: Exact match on name or oracle_name
+                let match = parsed.data.find(c => 
+                  (c.name && c.name.toLowerCase() === qLower) || 
+                  (c.oracle_name && c.oracle_name.toLowerCase() === qLower)
+                );
+                // Priority 2: Name starts with query or contains query normalized
+                if (!match) {
+                  const normQ = qLower.replace(/[^a-z0-9]/g, '');
+                  match = parsed.data.find(c => {
+                    const normC = (c.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    return normC.startsWith(normQ) || normC.includes(normQ);
+                  });
+                }
+                // Priority 3: First result
+                if (!match) match = parsed.data[0];
+
+                const foundImg = match.images?.full || match.images?.thumb;
+                if (foundImg) {
+                  imageUrl = foundImg;
+                  source = `Riftbound: ${match.set_name || 'TCG'} (${match.collector_number || match.riftbound_id || ''})`;
+                  itemDetails = {
+                    cardCode: match.riftbound_id || match.collector_number,
+                    name: match.name,
+                    type: `${match.type || 'Card'}${match.domains ? ` • ${match.domains.join('/')}` : ''}`,
+                    game: 'Riftbound (Riot Games)',
+                    artist: match.artist,
+                    remoteUrl: foundImg
+                  };
+                  break;
+                }
+              }
+            }
+          } catch (err) {
+            console.warn('Error querying Riftbound card API:', err.message);
+          }
+        }
       }
 
       sendJson(200, {
