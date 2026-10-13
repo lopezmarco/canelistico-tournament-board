@@ -27,6 +27,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const decklistViewTitle = document.getElementById('decklist-view-title');
   const decklistViewSubtitle = document.getElementById('decklist-view-subtitle');
   const viewDecklistCombinedText = document.getElementById('view-decklist-combined-text');
+  const decklistInteractiveContainer = document.getElementById('decklist-interactive-container');
+  const decklistCardPreviewImg = document.getElementById('decklist-card-preview-img');
+  const decklistCardLoading = document.getElementById('decklist-card-loading');
+  const decklistCardTitleBadge = document.getElementById('decklist-card-title-badge');
+  const decklistCardInfoText = document.getElementById('decklist-card-info-text');
+
+  // Solid black placeholder image
+  const BLACK_IMAGE = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420'%3E%3Crect width='300' height='420' fill='%23000000'/%3E%3C/svg%3E";
+
+  let activeCardLookupController = null;
 
   function escapeHtml(str) {
     if (!str) return '';
@@ -62,6 +72,161 @@ document.addEventListener('DOMContentLoaded', async () => {
     return formatted.join('\n\n');
   }
 
+  async function handleDeckWordClick(word, rowLine, linkEl) {
+    if (activeCardLookupController) {
+      activeCardLookupController.abort();
+    }
+    activeCardLookupController = new AbortController();
+    const signal = activeCardLookupController.signal;
+
+    // Highlight clicked link
+    document.querySelectorAll('.deck-word-link.active-card-word').forEach(el => el.classList.remove('active-card-word'));
+    if (linkEl) linkEl.classList.add('active-card-word');
+
+    // Clean word from leading/trailing punctuation for searching
+    const cleanWord = word.replace(/^[^\w\u00C0-\u017F]+|[^\w\u00C0-\u017F]+$/g, '').trim();
+    const searchWord = cleanWord || word.trim();
+
+    if (!searchWord) {
+      if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
+      if (decklistCardInfoText) decklistCardInfoText.textContent = 'Palabra no válida';
+      return;
+    }
+
+    if (decklistCardTitleBadge) decklistCardTitleBadge.textContent = searchWord.toUpperCase();
+    if (decklistCardLoading) decklistCardLoading.style.display = 'flex';
+    if (decklistCardInfoText) decklistCardInfoText.textContent = `Buscando "${searchWord}"...`;
+
+    try {
+      // 1. Query the API with the clicked word
+      let res = await fetch(`/api/card-image?name=${encodeURIComponent(searchWord)}`, { signal });
+      let data = res.ok ? await res.json() : null;
+
+      // 2. If no image found and rowLine has additional words, try the cleaned row as fallback
+      if ((!data || !data.imageUrl) && rowLine) {
+        const cleanRow = rowLine.replace(/^\s*\d+[\s\-\.:xX]*/, '').trim();
+        if (cleanRow && cleanRow.toLowerCase() !== searchWord.toLowerCase()) {
+          try {
+            const rowRes = await fetch(`/api/card-image?name=${encodeURIComponent(cleanRow)}`, { signal });
+            if (rowRes.ok) {
+              const rowData = await rowRes.json();
+              if (rowData && rowData.imageUrl) {
+                data = rowData;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (data && data.imageUrl) {
+        if (decklistCardPreviewImg) {
+          decklistCardPreviewImg.src = data.imageUrl;
+          decklistCardPreviewImg.onerror = () => {
+            decklistCardPreviewImg.src = BLACK_IMAGE;
+          };
+        }
+        if (decklistCardInfoText) {
+          decklistCardInfoText.textContent = data.details?.name 
+            ? `${data.details.name}${data.details.cardCode ? ` (${data.details.cardCode})` : ''}` 
+            : `Carta: ${searchWord}`;
+        }
+      } else {
+        // "If no card is found using the words in each row a black image will show instead."
+        if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
+        if (decklistCardInfoText) decklistCardInfoText.textContent = `No se encontró carta para "${searchWord}"`;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.warn('Error fetching card image:', err);
+      if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
+      if (decklistCardInfoText) decklistCardInfoText.textContent = 'No se encontró carta';
+    } finally {
+      if (decklistCardLoading) decklistCardLoading.style.display = 'none';
+    }
+  }
+
+  function renderInteractiveDecklist(container, deckData) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!deckData || typeof deckData !== 'object') {
+      container.innerHTML = '<div class="decklist-row-line decklist-empty-line">Sin información de Deck List registrada.</div>';
+      return;
+    }
+
+    const sections = [
+      { title: 'LEGEND', value: deckData.legend },
+      { title: 'CHAMPION', value: deckData.champion },
+      { title: 'BATTLEFIELDS', value: deckData.battlefields },
+      { title: 'RUNES', value: deckData.runes },
+      { title: 'UNITS', value: deckData.units },
+      { title: 'SPELLS', value: deckData.spells },
+      { title: 'GEARS', value: deckData.gears },
+      { title: 'SIDEBOARD', value: deckData.sideboard }
+    ];
+
+    let hasAnyData = false;
+
+    sections.forEach(sec => {
+      const secVal = (sec.value || '').trim();
+      const secBlock = document.createElement('div');
+      secBlock.className = 'decklist-section-block';
+
+      const secTitle = document.createElement('div');
+      secTitle.className = 'decklist-section-title';
+      secTitle.textContent = `${sec.title}:`;
+      secBlock.appendChild(secTitle);
+
+      if (!secVal) {
+        const emptyRow = document.createElement('div');
+        emptyRow.className = 'decklist-row-line decklist-empty-line';
+        emptyRow.textContent = '—';
+        secBlock.appendChild(emptyRow);
+      } else {
+        hasAnyData = true;
+        const lines = secVal.split(/\r?\n/);
+        lines.forEach(rawLine => {
+          const line = rawLine.trim();
+          if (!line) return;
+
+          const rowEl = document.createElement('div');
+          rowEl.className = 'decklist-row-line';
+
+          // Split line into words while preserving whitespace
+          const tokens = line.split(/(\s+)/);
+          tokens.forEach(token => {
+            if (/^\s+$/.test(token)) {
+              rowEl.appendChild(document.createTextNode(token));
+            } else if (token) {
+              const link = document.createElement('a');
+              link.href = 'javascript:void(0)';
+              link.className = 'deck-word-link';
+              link.textContent = token;
+              link.title = `Buscar carta: ${token}`;
+              link.setAttribute('data-word', token);
+              link.setAttribute('data-row', line);
+
+              link.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleDeckWordClick(token, line, link);
+              });
+
+              rowEl.appendChild(link);
+            }
+          });
+
+          secBlock.appendChild(rowEl);
+        });
+      }
+
+      container.appendChild(secBlock);
+    });
+
+    if (!hasAnyData) {
+      container.innerHTML = '<div class="decklist-row-line decklist-empty-line">Sin información de Deck List registrada.</div>';
+    }
+  }
+
   function openDecklistView(row, displayRank) {
     if (!decklistViewModalOverlay) return;
 
@@ -73,17 +238,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     decklistViewTitle.textContent = `Deck List • Puesto #${rank}`;
     decklistViewSubtitle.textContent = `${player} — ${deckName}`;
 
+    // Reset preview image to black image
+    if (decklistCardPreviewImg) {
+      decklistCardPreviewImg.src = BLACK_IMAGE;
+    }
+    if (decklistCardTitleBadge) {
+      decklistCardTitleBadge.textContent = 'CARTA SELECCIONADA';
+    }
+    if (decklistCardInfoText) {
+      decklistCardInfoText.textContent = 'Haz clic en cualquier palabra para visualizar la carta';
+    }
+    if (decklistCardLoading) {
+      decklistCardLoading.style.display = 'none';
+    }
+
     if (viewDecklistCombinedText) {
       viewDecklistCombinedText.value = formatDecklistText(deckData);
+    }
+
+    if (decklistInteractiveContainer) {
+      renderInteractiveDecklist(decklistInteractiveContainer, deckData);
     }
 
     decklistViewModalOverlay.classList.add('active');
   }
 
   function closeDecklistView() {
+    if (activeCardLookupController) {
+      activeCardLookupController.abort();
+    }
     if (decklistViewModalOverlay) {
       decklistViewModalOverlay.classList.remove('active');
     }
+    document.querySelectorAll('.deck-word-link.active-card-word').forEach(el => el.classList.remove('active-card-word'));
   }
 
   if (btnCloseDecklistView) {

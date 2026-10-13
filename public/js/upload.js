@@ -658,6 +658,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnConfirmResetPoints = document.getElementById('btn-confirm-reset-points');
   const btnCloseResetPointsModal = document.getElementById('btn-close-reset-points-modal');
 
+
+
   function sortPlayersState() {
     playersState.sort((a, b) => {
       const diff = (Number(b.puntos) || 0) - (Number(a.puntos) || 0);
