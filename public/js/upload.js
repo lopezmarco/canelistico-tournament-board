@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const decklistModalTitle = document.getElementById('decklist-modal-title');
   const decklistModalSubtitle = document.getElementById('decklist-modal-subtitle');
 
-  // Modal Inputs
+  // Modal Inputs (Standard)
   const inputLegend = document.getElementById('decklist-legend');
   const inputChampion = document.getElementById('decklist-champion');
   const inputBattlefields = document.getElementById('decklist-battlefields');
@@ -37,12 +37,83 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputGears = document.getElementById('decklist-gears');
   const inputSideboard = document.getElementById('decklist-sideboard');
 
+  // Modal Inputs & Containers (Digimon specific)
+  const decklistFieldsStandard = document.getElementById('decklist-fields-standard');
+  const decklistFieldsDigimon = document.getElementById('decklist-fields-digimon');
+  const inputDigiEggs = document.getElementById('decklist-digi-eggs');
+  const inputDigimon = document.getElementById('decklist-digimon');
+  const decklistDigiEggsHint = document.getElementById('decklist-digi-eggs-hint');
+  const decklistDigimonHint = document.getElementById('decklist-digimon-hint');
+  const decklistModalValidation = document.getElementById('decklist-modal-validation');
+  const decklistModalValidationText = document.getElementById('decklist-modal-validation-text');
+
   // State to track decklists per section and row index
   let globalDecklists = {};
   let tournamentDecklists = [];
   let currentModalTarget = null; // { section: 'global' | 'tournament', index: number }
 
+  function isDecklistComplete(decklistData, gameName = '') {
+    if (!decklistData || typeof decklistData !== 'object') return false;
+    const currentGame = (gameName || (tournamentSelect ? tournamentSelect.value : '')).toLowerCase();
+    const isDigimon = currentGame ? currentGame.includes('digimon') : (Boolean(decklistData.digieggs) || Boolean(decklistData.digimon));
 
+    if (isDigimon) {
+      const eggs = (decklistData.digieggs || decklistData.digiEggs || '').trim();
+      const mon = (decklistData.digimon || '').trim();
+      return eggs.length > 0 && mon.length > 0;
+    }
+
+    const sections = ['legend', 'champion', 'battlefields', 'runes', 'units', 'spells', 'gears', 'sideboard'];
+    return sections.every(k => decklistData[k] && typeof decklistData[k] === 'string' && decklistData[k].trim().length > 0);
+  }
+
+  function setupTextareaLimits(textarea, maxRows, maxChars, hintEl) {
+    if (!textarea) return () => {};
+
+    function enforce() {
+      let val = textarea.value;
+      let lines = val.split(/\r?\n/);
+
+      if (lines.length > maxRows) {
+        lines = lines.slice(0, maxRows);
+      }
+
+      lines = lines.map(line => line.length > maxChars ? line.slice(0, maxChars) : line);
+
+      const updated = lines.join('\n');
+      if (textarea.value !== updated) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        textarea.value = updated;
+        try {
+          textarea.setSelectionRange(Math.min(start, updated.length), Math.min(end, updated.length));
+        } catch (_) {}
+      }
+
+      const filled = lines.filter(l => l.trim().length > 0).length;
+      if (hintEl) {
+        hintEl.textContent = `${filled}/${maxRows} filas • máx. ${maxChars} car./fila`;
+        if (filled >= maxRows) {
+          hintEl.style.color = '#f59e0b';
+        } else {
+          hintEl.style.color = 'var(--text-muted)';
+        }
+      }
+    }
+
+    textarea.addEventListener('input', enforce);
+    textarea.addEventListener('keydown', (e) => {
+      const lines = textarea.value.split(/\r?\n/);
+      if (e.key === 'Enter' && lines.length >= maxRows) {
+        e.preventDefault();
+      }
+    });
+
+    return enforce;
+  }
+
+  const updateDigiEggsLimits = setupTextareaLimits(inputDigiEggs, 5, 50, decklistDigiEggsHint);
+  const updateDigimonLimits = setupTextareaLimits(inputDigimon, 50, 50, decklistDigimonHint);
 
   function extractNumber(val, defaultVal = '1') {
     if (val === null || val === undefined) return defaultVal;
@@ -203,6 +274,10 @@ document.addEventListener('DOMContentLoaded', () => {
     decklistModalTitle.textContent = `Deck List • Puesto #${rankNumber}`;
     decklistModalSubtitle.textContent = playerName ? `Jugador: ${playerName}` : 'Registro de baraja del jugador';
 
+    if (decklistModalValidation) {
+      decklistModalValidation.style.display = 'none';
+    }
+
     // Retrieve saved decklist data if exists
     let data = {};
     if (section === 'global') {
@@ -211,40 +286,121 @@ document.addEventListener('DOMContentLoaded', () => {
       data = tournamentDecklists[index] || {};
     }
 
-    inputLegend.value = data.legend || '';
-    inputChampion.value = data.champion || '';
-    inputBattlefields.value = data.battlefields || '';
-    inputRunes.value = data.runes || '';
-    inputUnits.value = data.units || '';
-    inputSpells.value = data.spells || '';
-    inputGears.value = data.gears || '';
-    inputSideboard.value = data.sideboard || '';
+    const currentGame = (tournamentSelect ? tournamentSelect.value : '').toLowerCase();
+    const isDigimon = currentGame.includes('digimon');
 
-    decklistModalOverlay.classList.add('active');
-    inputLegend.focus();
+    if (isDigimon) {
+      if (decklistFieldsStandard) decklistFieldsStandard.style.display = 'none';
+      if (decklistFieldsDigimon) decklistFieldsDigimon.style.display = 'flex';
+
+      if (inputDigiEggs) {
+        inputDigiEggs.value = data.digieggs || data.digiEggs || '';
+        updateDigiEggsLimits();
+      }
+      if (inputDigimon) {
+        inputDigimon.value = data.digimon || '';
+        updateDigimonLimits();
+      }
+      decklistModalOverlay.classList.add('active');
+      if (inputDigiEggs) inputDigiEggs.focus();
+    } else {
+      if (decklistFieldsStandard) decklistFieldsStandard.style.display = 'block';
+      if (decklistFieldsDigimon) decklistFieldsDigimon.style.display = 'none';
+
+      inputLegend.value = data.legend || '';
+      inputChampion.value = data.champion || '';
+      inputBattlefields.value = data.battlefields || '';
+      inputRunes.value = data.runes || '';
+      inputUnits.value = data.units || '';
+      inputSpells.value = data.spells || '';
+      inputGears.value = data.gears || '';
+      inputSideboard.value = data.sideboard || '';
+
+      decklistModalOverlay.classList.add('active');
+      inputLegend.focus();
+    }
   }
 
   function closeDecklistModal() {
     decklistModalOverlay.classList.remove('active');
     currentModalTarget = null;
+    if (decklistModalValidation) {
+      decklistModalValidation.style.display = 'none';
+    }
   }
 
   // "Enviar" button only closes the modal and saves the in-memory decklist for that row
   btnDecklistSubmit.addEventListener('click', () => {
     if (currentModalTarget) {
       const { section, index } = currentModalTarget;
-      const decklistData = {
-        legend: inputLegend.value.trim(),
-        champion: inputChampion.value.trim(),
-        battlefields: inputBattlefields.value,
-        runes: inputRunes.value,
-        units: inputUnits.value,
-        spells: inputSpells.value,
-        gears: inputGears.value,
-        sideboard: inputSideboard.value
-      };
+      const currentGame = (tournamentSelect ? tournamentSelect.value : '').toLowerCase();
+      const isDigimon = currentGame.includes('digimon');
+      let decklistData = {};
 
-      const hasAnyContent = Object.values(decklistData).some(v => v && v.trim().length > 0);
+      if (isDigimon) {
+        const eggsRaw = (inputDigiEggs ? inputDigiEggs.value : '').trim();
+        const digimonRaw = (inputDigimon ? inputDigimon.value : '').trim();
+
+        const eggsLines = eggsRaw ? eggsRaw.split(/\r?\n/) : [];
+        const digimonLines = digimonRaw ? digimonRaw.split(/\r?\n/) : [];
+
+        if (eggsLines.length > 5) {
+          if (decklistModalValidation && decklistModalValidationText) {
+            decklistModalValidationText.textContent = 'Digi-eggs no puede tener más de 5 filas.';
+            decklistModalValidation.style.display = 'flex';
+          }
+          if (inputDigiEggs) inputDigiEggs.focus();
+          return;
+        }
+
+        const longEgg = eggsLines.find(l => l.length > 50);
+        if (longEgg) {
+          if (decklistModalValidation && decklistModalValidationText) {
+            decklistModalValidationText.textContent = `La fila "${longEgg.slice(0, 25)}..." supera los 50 caracteres permitidos.`;
+            decklistModalValidation.style.display = 'flex';
+          }
+          if (inputDigiEggs) inputDigiEggs.focus();
+          return;
+        }
+
+        if (digimonLines.length > 50) {
+          if (decklistModalValidation && decklistModalValidationText) {
+            decklistModalValidationText.textContent = 'Digimon no puede tener más de 50 filas.';
+            decklistModalValidation.style.display = 'flex';
+          }
+          if (inputDigimon) inputDigimon.focus();
+          return;
+        }
+
+        const longDigimon = digimonLines.find(l => l.length > 50);
+        if (longDigimon) {
+          if (decklistModalValidation && decklistModalValidationText) {
+            decklistModalValidationText.textContent = `La fila "${longDigimon.slice(0, 25)}..." supera los 50 caracteres permitidos.`;
+            decklistModalValidation.style.display = 'flex';
+          }
+          if (inputDigimon) inputDigimon.focus();
+          return;
+        }
+
+        decklistData = {
+          digieggs: eggsRaw,
+          digimon: digimonRaw
+        };
+      } else {
+        decklistData = {
+          legend: inputLegend.value.trim(),
+          champion: inputChampion.value.trim(),
+          battlefields: inputBattlefields.value,
+          runes: inputRunes.value,
+          units: inputUnits.value,
+          spells: inputSpells.value,
+          gears: inputGears.value,
+          sideboard: inputSideboard.value
+        };
+      }
+
+      const isComplete = isDecklistComplete(decklistData, currentGame);
+      const hasAnyContent = isComplete;
 
       if (section === 'global') {
         globalDecklists[index] = decklistData;
@@ -292,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.deckList) {
       tournamentDecklists[rowIndex] = data.deckList;
     }
-    const hasDecklist = tournamentDecklists[rowIndex] && Object.values(tournamentDecklists[rowIndex]).some(v => v && v.trim().length > 0);
+    const hasDecklist = isDecklistComplete(tournamentDecklists[rowIndex]);
 
     tr.innerHTML = `
       <td>

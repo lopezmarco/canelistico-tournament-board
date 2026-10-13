@@ -335,52 +335,87 @@
 
       <form class="decklist-form" id="decklist-form" onsubmit="return false;">
         
-        <!-- Legend & Champion (Row with 2 columns) -->
-        <div class="decklist-form-row">
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label" for="decklist-legend">Legend (1-30 car.)</label>
-            <input type="text" id="decklist-legend" class="row-input" minlength="1" maxlength="30" placeholder="Nombre de Legend" required>
+        <!-- Standard Sections (Riftbound, Pokemon, Lorcana, etc.) -->
+        <div id="decklist-fields-standard">
+          <!-- Legend & Champion (Row with 2 columns) -->
+          <div class="decklist-form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="decklist-legend">Legend (1-30 car.)</label>
+              <input type="text" id="decklist-legend" class="row-input" minlength="1" maxlength="30" placeholder="Nombre de Legend">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="decklist-champion">Champion (1-30 car.)</label>
+              <input type="text" id="decklist-champion" class="row-input" minlength="1" maxlength="30" placeholder="Nombre de Champion">
+            </div>
           </div>
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label" for="decklist-champion">Champion (1-30 car.)</label>
-            <input type="text" id="decklist-champion" class="row-input" minlength="1" maxlength="30" placeholder="Nombre de Champion" required>
+
+          <!-- Battlefields & Runes -->
+          <div class="decklist-form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="decklist-battlefields">Battlefields</label>
+              <textarea id="decklist-battlefields" class="row-input decklist-textarea" placeholder="Lista de Battlefields..."></textarea>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="decklist-runes">Runes</label>
+              <textarea id="decklist-runes" class="row-input decklist-textarea" placeholder="Lista de Runes..."></textarea>
+            </div>
+          </div>
+
+          <!-- Units & Spells -->
+          <div class="decklist-form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="decklist-units">Units</label>
+              <textarea id="decklist-units" class="row-input decklist-textarea" placeholder="Lista de Units..."></textarea>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="decklist-spells">Spells</label>
+              <textarea id="decklist-spells" class="row-input decklist-textarea" placeholder="Lista de Spells..."></textarea>
+            </div>
+          </div>
+
+          <!-- Gears & Sideboard -->
+          <div class="decklist-form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="decklist-gears">Gears</label>
+              <textarea id="decklist-gears" class="row-input decklist-textarea" placeholder="Lista de Gears..."></textarea>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" for="decklist-sideboard">Sideboard</label>
+              <textarea id="decklist-sideboard" class="row-input decklist-textarea" placeholder="Lista de Sideboard..."></textarea>
+            </div>
           </div>
         </div>
 
-        <!-- Battlefields & Runes -->
-        <div class="decklist-form-row">
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label" for="decklist-battlefields">Battlefields</label>
-            <textarea id="decklist-battlefields" class="row-input decklist-textarea" placeholder="Lista de Battlefields..."></textarea>
+        <!-- Digimon Specific Form: ONLY 2 text areas ("Digi-eggs" and "Digimon") -->
+        <div id="decklist-fields-digimon" style="display: none; flex-direction: column; gap: 14px;">
+          <!-- Digi-eggs (max 5 rows, 50 chars per row) -->
+          <div class="form-group" style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+              <label class="form-label" for="decklist-digi-eggs" style="margin-bottom: 0;">Digi-eggs</label>
+              <span id="decklist-digi-eggs-hint" style="font-size: 11px; color: var(--text-muted);">Máx. 5 filas &bull; 50 car. por fila</span>
+            </div>
+            <textarea id="decklist-digi-eggs" 
+                      class="row-input decklist-textarea" 
+                      style="min-height: 90px; resize: vertical;"
+                      placeholder="Lista de Digi-eggs (máximo 5 filas, 50 caracteres por fila)..."></textarea>
           </div>
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label" for="decklist-runes">Runes</label>
-            <textarea id="decklist-runes" class="row-input decklist-textarea" placeholder="Lista de Runes..."></textarea>
+
+          <!-- Digimon (max 50 rows, 50 chars per row) -->
+          <div class="form-group" style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+              <label class="form-label" for="decklist-digimon" style="margin-bottom: 0;">Digimon</label>
+              <span id="decklist-digimon-hint" style="font-size: 11px; color: var(--text-muted);">Máx. 50 filas &bull; 50 car. por fila</span>
+            </div>
+            <textarea id="decklist-digimon" 
+                      class="row-input decklist-textarea" 
+                      style="min-height: 200px; resize: vertical;"
+                      placeholder="Lista de Digimon (máximo 50 filas, 50 caracteres por fila)..."></textarea>
           </div>
         </div>
 
-        <!-- Units & Spells -->
-        <div class="decklist-form-row">
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label" for="decklist-units">Units</label>
-            <textarea id="decklist-units" class="row-input decklist-textarea" placeholder="Lista de Units..."></textarea>
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label" for="decklist-spells">Spells</label>
-            <textarea id="decklist-spells" class="row-input decklist-textarea" placeholder="Lista de Spells..."></textarea>
-          </div>
-        </div>
-
-        <!-- Gears & Sideboard -->
-        <div class="decklist-form-row">
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label" for="decklist-gears">Gears</label>
-            <textarea id="decklist-gears" class="row-input decklist-textarea" placeholder="Lista de Gears..."></textarea>
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label" for="decklist-sideboard">Sideboard</label>
-            <textarea id="decklist-sideboard" class="row-input decklist-textarea" placeholder="Lista de Sideboard..."></textarea>
-          </div>
+        <!-- Validation message box inside modal if limits exceeded -->
+        <div id="decklist-modal-validation" class="validation-box error" style="display: none; margin-top: 6px;">
+          <span id="decklist-modal-validation-text"></span>
         </div>
 
         <!-- Modal Action Button -->

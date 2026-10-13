@@ -254,6 +254,7 @@ const server = http.createServer((req, res) => {
     const https = require('https');
     const apiKey = 'RGAPI-6a366b17-f637-432d-8796-40634894c8df';
     const queryName = (parsedUrl.searchParams.get('name') || '').trim();
+    const queryGame = (parsedUrl.searchParams.get('game') || '').toLowerCase();
 
     // Helper to perform HTTPS GET
     const httpsGet = (url, headers = {}) => new Promise((resolve) => {
@@ -273,6 +274,104 @@ const server = http.createServer((req, res) => {
 
       if (!queryName) {
         sendJson(200, { success: true, imageUrl: null, source: '', details: null });
+        return;
+      }
+
+      // If game is Digimon, query Digimon Card API directly
+      if (queryGame.includes('digimon')) {
+        // 1. Input Parsing:
+        // Take the raw string (e.g., "Lunamon bt25"). Split it so the last word (case-insensitive)
+        // is treated as the expansion/set filter (e.g., "bt25"), and all preceding words form the card name (e.g., "Lunamon").
+        const rawTrimmed = queryName.trim();
+        const tokens = rawTrimmed.split(/\s+/);
+        let cardName = rawTrimmed;
+        let expansionFilter = '';
+
+        if (tokens.length >= 2) {
+          expansionFilter = tokens[tokens.length - 1].toUpperCase();
+          cardName = tokens.slice(0, tokens.length - 1).join(' ').trim();
+        }
+
+        const cleanCardName = cardName.replace(/^[\d\sxX\-.:]+/, '').trim() || cardName;
+        const namesToTry = Array.from(new Set([cleanCardName, cardName].filter(Boolean)));
+        let cards = null;
+
+        // 2. API Request:
+        // Use the digimoncard.io search endpoint (https://digimoncard.io/api-public/search).
+        // Pass the card name to the 'n' parameter.
+        for (const nParam of namesToTry) {
+          try {
+            const digiRes = await httpsGet(
+              `https://digimoncard.io/api-public/search?n=${encodeURIComponent(nParam)}`,
+              { 'User-Agent': 'CanelisticoTCG/1.0' }
+            );
+            if (digiRes.statusCode === 200 && digiRes.body) {
+              let parsed = null;
+              try { parsed = JSON.parse(digiRes.body); } catch (_) {}
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                cards = parsed;
+                break;
+              }
+            }
+          } catch (err) {
+            console.warn('Error querying Digimon card API:', err.message);
+          }
+        }
+
+        if (cards && cards.length > 0) {
+          // Iterate through the returned list of card printings to find the one where the cardnumber
+          // starts with or matches the requested expansion code (normalized to uppercase, e.g., "BT25").
+          let match = null;
+          if (expansionFilter) {
+            const normExp = expansionFilter.replace(/[^A-Z0-9]/g, '');
+            match = cards.find(c => {
+              const cardNum = (c.cardnumber || c.id || c.card_number || '').toUpperCase();
+              const normCardNum = cardNum.replace(/[^A-Z0-9]/g, '');
+              return cardNum.startsWith(expansionFilter) ||
+                     normCardNum.startsWith(normExp) ||
+                     cardNum.replace(/-/g, '').startsWith(normExp) ||
+                     cardNum === expansionFilter;
+            });
+          }
+
+          // If no specific expansion match, fallback to the first printing (preferring Digimon Card Game)
+          if (!match) {
+            match = cards.find(c => c.series === 'Digimon Card Game') || cards[0];
+          }
+
+          if (match) {
+            const foundImg = match.image_url || match.imageUrl || (match.id ? `https://images.digimoncard.io/images/cards/${encodeURIComponent(match.id)}.jpg` : null);
+            imageUrl = foundImg;
+            source = `Digimon Card Game: ${match.id || match.cardnumber || match.name}`;
+
+            const effects = [];
+            if (match.main_effect && match.main_effect.trim()) effects.push(match.main_effect.trim());
+            if (match.source_effect && match.source_effect.trim()) effects.push(`[Inherited Effect]\n${match.source_effect.trim()}`);
+            if (match.alt_effect && match.alt_effect.trim()) effects.push(match.alt_effect.trim());
+
+            const typeParts = [match.type, match.color, match.level ? `Lv.${match.level}` : '', match.dp ? `${match.dp} DP` : ''].filter(Boolean);
+
+            itemDetails = {
+              cardCode: match.cardnumber || match.id,
+              name: match.name,
+              type: typeParts.join(' • '),
+              game: 'Digimon Card Game',
+              artist: match.artist,
+              remoteUrl: foundImg,
+              rulesText: effects.join('\n\n'),
+              flavorText: match.digi_type ? `Type: ${match.digi_type}${match.attribute ? ` • Attribute: ${match.attribute}` : ''}` : ''
+            };
+          }
+        }
+
+        sendJson(200, {
+          success: true,
+          imageUrl: imageUrl,
+          source: source,
+          details: itemDetails,
+          rulesText: itemDetails?.rulesText || '',
+          flavorText: itemDetails?.flavorText || ''
+        });
         return;
       }
 
@@ -354,7 +453,9 @@ const server = http.createServer((req, res) => {
                     type: `${match.type || 'Card'}${match.domains ? ` • ${match.domains.join('/')}` : ''}`,
                     game: 'Riftbound (Riot Games)',
                     artist: match.artist,
-                    remoteUrl: foundImg
+                    remoteUrl: foundImg,
+                    rulesText: match.rules_text || '',
+                    flavorText: match.flavor_text || ''
                   };
                   break;
                 }
@@ -375,7 +476,9 @@ const server = http.createServer((req, res) => {
         },
         imageUrl: imageUrl,
         source: source,
-        details: itemDetails
+        details: itemDetails,
+        rulesText: itemDetails?.rulesText || '',
+        flavorText: itemDetails?.flavorText || ''
       });
     })();
     return;

@@ -147,20 +147,24 @@
         <div class="decklist-preview-column">
           <div class="decklist-card-preview-frame">
             <div class="decklist-card-frame-header">
-              <span id="decklist-card-title-badge">CARTA SELECCIONADA</span>
+              <span id="decklist-card-title-badge">SELECTED CARD</span>
             </div>
             <div class="decklist-card-img-container">
               <img id="decklist-card-preview-img" 
                    src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420'%3E%3Crect width='300' height='420' fill='%23000000'/%3E%3C/svg%3E" 
-                   alt="Vista previa de carta" 
+                   alt="Card preview" 
                    class="decklist-card-img" />
               <div id="decklist-card-loading" class="decklist-card-loading" style="display: none;">
                 <div class="card-loading-spinner"></div>
-                <span>Buscando carta...</span>
+                <span>Searching card...</span>
               </div>
             </div>
-            <div class="decklist-card-frame-footer" id="decklist-card-info-text">
-              Haz clic en cualquier palabra para visualizar la carta
+            <div class="decklist-card-frame-footer">
+              <div class="decklist-card-info-main" id="decklist-card-info-text">
+                Click any row to view the card
+              </div>
+              <div id="decklist-card-rules-text" class="decklist-card-rules-text" style="display: none;"></div>
+              <div id="decklist-card-flavor-text" class="decklist-card-flavor-text" style="display: none;"></div>
             </div>
           </div>
         </div>

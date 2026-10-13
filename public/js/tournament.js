@@ -32,6 +32,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const decklistCardLoading = document.getElementById('decklist-card-loading');
   const decklistCardTitleBadge = document.getElementById('decklist-card-title-badge');
   const decklistCardInfoText = document.getElementById('decklist-card-info-text');
+  const decklistCardRulesText = document.getElementById('decklist-card-rules-text');
+  const decklistCardFlavorText = document.getElementById('decklist-card-flavor-text');
 
   // Solid black placeholder image
   const BLACK_IMAGE = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 420'%3E%3Crect width='300' height='420' fill='%23000000'/%3E%3C/svg%3E";
@@ -59,28 +61,124 @@ document.addEventListener('DOMContentLoaded', async () => {
       .replace(/'/g, '&#039;');
   }
 
+  const DECKLIST_SECTIONS = [
+    { key: 'legend', title: 'LEGEND' },
+    { key: 'champion', title: 'CHAMPION' },
+    { key: 'battlefields', title: 'BATTLEFIELDS' },
+    { key: 'runes', title: 'RUNES' },
+    { key: 'units', title: 'UNITS' },
+    { key: 'spells', title: 'SPELLS' },
+    { key: 'gears', title: 'GEARS' },
+    { key: 'sideboard', title: 'SIDEBOARD' }
+  ];
+
+  const DIGIMON_SECTIONS = [
+    { key: 'digieggs', title: 'DIGI-EGGS' },
+    { key: 'digimon', title: 'DIGIMON' }
+  ];
+
+  function isDigimonDecklist(deckData) {
+    if (!deckData || typeof deckData !== 'object') return false;
+    if (normalizedKey.includes('digimon')) return true;
+    if ((deckData.digieggs && deckData.digieggs.trim().length > 0) || (deckData.digimon && deckData.digimon.trim().length > 0)) {
+      return true;
+    }
+    return false;
+  }
+
+  function getDecklistSections(deckData) {
+    return isDigimonDecklist(deckData) ? DIGIMON_SECTIONS : DECKLIST_SECTIONS;
+  }
+
+  // If any section is empty, mark full deck list as empty
+  function isDecklistComplete(deckData) {
+    if (!deckData || typeof deckData !== 'object') return false;
+    const sections = getDecklistSections(deckData);
+    for (const sec of sections) {
+      const val = deckData[sec.key];
+      if (!val || typeof val !== 'string' || val.trim().length === 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   function formatDecklistText(deckData) {
-    if (!deckData || typeof deckData !== 'object') {
+    if (!isDecklistComplete(deckData)) {
       return 'Sin información de Deck List registrada.';
     }
 
-    const sections = [
-      { title: 'LEGEND', value: deckData.legend },
-      { title: 'CHAMPION', value: deckData.champion },
-      { title: 'BATTLEFIELDS', value: deckData.battlefields },
-      { title: 'RUNES', value: deckData.runes },
-      { title: 'UNITS', value: deckData.units },
-      { title: 'SPELLS', value: deckData.spells },
-      { title: 'GEARS', value: deckData.gears },
-      { title: 'SIDEBOARD', value: deckData.sideboard }
-    ];
-
+    const sections = getDecklistSections(deckData);
     const formatted = sections.map(s => {
-      const val = (s.value || '').trim();
-      return `${s.title}:\n${val ? val : '—'}`;
+      const val = (deckData[s.key] || '').trim();
+      return `${s.title}:\n${val}`;
     });
 
     return formatted.join('\n\n');
+  }
+
+  async function fetchDigimonCardDirect(query, signal) {
+    const rawTrimmed = (query || '').trim();
+    const tokens = rawTrimmed.split(/\s+/);
+    let cardName = rawTrimmed;
+    let expansionFilter = '';
+
+    if (tokens.length >= 2) {
+      expansionFilter = tokens[tokens.length - 1].toUpperCase();
+      cardName = tokens.slice(0, tokens.length - 1).join(' ').trim();
+    }
+
+    const cleanCardName = cardName.replace(/^[\d\sxX\-.:]+/, '').trim() || cardName;
+    const namesToTry = Array.from(new Set([cleanCardName, cardName].filter(Boolean)));
+
+    for (const nParam of namesToTry) {
+      try {
+        const res = await fetch(`https://digimoncard.io/api-public/search?n=${encodeURIComponent(nParam)}`, { signal });
+        if (!res.ok) continue;
+        const list = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+          let match = null;
+          if (expansionFilter) {
+            const normExp = expansionFilter.replace(/[^A-Z0-9]/g, '');
+            match = list.find(c => {
+              const cardNum = (c.cardnumber || c.id || c.card_number || '').toUpperCase();
+              const normCardNum = cardNum.replace(/[^A-Z0-9]/g, '');
+              return cardNum.startsWith(expansionFilter) ||
+                     normCardNum.startsWith(normExp) ||
+                     cardNum.replace(/-/g, '').startsWith(normExp) ||
+                     cardNum === expansionFilter;
+            });
+          }
+
+          if (!match) {
+            match = list.find(c => c.series === 'Digimon Card Game') || list[0];
+          }
+
+          const img = match.image_url || match.imageUrl || (match.id ? `https://images.digimoncard.io/images/cards/${encodeURIComponent(match.id)}.jpg` : null);
+          const effects = [];
+          if (match.main_effect && match.main_effect.trim()) effects.push(match.main_effect.trim());
+          if (match.source_effect && match.source_effect.trim()) effects.push(`[Inherited Effect]\n${match.source_effect.trim()}`);
+          if (match.alt_effect && match.alt_effect.trim()) effects.push(match.alt_effect.trim());
+
+          const typeParts = [match.type, match.color, match.level ? `Lv.${match.level}` : '', match.dp ? `${match.dp} DP` : ''].filter(Boolean);
+
+          return {
+            imageUrl: img,
+            rulesText: effects.join('\n\n'),
+            flavorText: match.digi_type ? `Type: ${match.digi_type}${match.attribute ? ` • Attribute: ${match.attribute}` : ''}` : '',
+            details: {
+              name: match.name,
+              cardCode: match.cardnumber || match.id,
+              type: typeParts.join(' • '),
+              game: 'Digimon Card Game'
+            }
+          };
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') throw err;
+      }
+    }
+    return null;
   }
 
   async function handleDeckRowClick(rowText, linkEl) {
@@ -102,18 +200,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!cardName) {
       if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
-      if (decklistCardInfoText) decklistCardInfoText.textContent = 'Fila vacía';
+      if (decklistCardInfoText) decklistCardInfoText.textContent = 'Empty row';
       return;
     }
 
+    const isDigimon = normalizedKey.includes('digimon');
+    const gameLabel = isDigimon ? 'Digimon' : 'Riftbound';
+
     if (decklistCardTitleBadge) decklistCardTitleBadge.textContent = cardName.toUpperCase();
     if (decklistCardLoading) decklistCardLoading.style.display = 'flex';
-    if (decklistCardInfoText) decklistCardInfoText.textContent = `Buscando "${cardName}" en Riftbound...`;
+    if (decklistCardInfoText) decklistCardInfoText.textContent = `Searching for "${cardName}" in ${gameLabel}...`;
 
     try {
-      // Query the API using the ENTIRE text content of this row as the card name
-      let res = await fetch(`/api/card-image?name=${encodeURIComponent(cardName)}`, { signal });
+      // 1. Query server endpoint for card image
+      let res = await fetch(`/api/card-image?name=${encodeURIComponent(cardName)}&game=${encodeURIComponent(isDigimon ? 'digimon' : 'riftbound')}`, { signal });
       let data = res.ok ? await res.json() : null;
+
+      // 2. Direct fallback to Digimon API if needed
+      if (isDigimon && (!data || !data.imageUrl)) {
+        try {
+          const directData = await fetchDigimonCardDirect(cardName, signal);
+          if (directData && directData.imageUrl) {
+            data = directData;
+          }
+        } catch (directErr) {
+          if (directErr.name === 'AbortError') return;
+        }
+      }
 
       if (data && data.imageUrl) {
         if (decklistCardPreviewImg) {
@@ -124,19 +237,63 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (decklistCardInfoText) {
           decklistCardInfoText.textContent = data.details?.name 
-            ? `${data.details.name}${data.details.cardCode ? ` (${data.details.cardCode})` : ''}` 
-            : `Carta: ${cardName}`;
+            ? `${data.details.name}${data.details.cardCode ? ` (${data.details.cardCode})` : ''}${data.details.type ? ` • ${data.details.type}` : ''}` 
+            : `Card: ${cardName}`;
+        }
+        // Card rules plain text
+        const rawRules = data.rulesText || data.details?.rulesText || '';
+        if (decklistCardRulesText) {
+          if (rawRules) {
+            const cleanRules = rawRules
+              .replace(/:rb_might:/gi, 'Might')
+              .replace(/:rb_energy:/gi, 'Energy')
+              .replace(/:rb_power:/gi, 'Power');
+            decklistCardRulesText.textContent = cleanRules;
+            decklistCardRulesText.style.display = 'block';
+            decklistCardRulesText.scrollTop = 0;
+          } else {
+            decklistCardRulesText.textContent = '';
+            decklistCardRulesText.style.display = 'none';
+          }
+        }
+        // Card flavor plain text
+        const rawFlavor = data.flavorText || data.details?.flavorText || '';
+        if (decklistCardFlavorText) {
+          if (rawFlavor) {
+            decklistCardFlavorText.textContent = rawFlavor.startsWith('"') ? rawFlavor : `"${rawFlavor}"`;
+            decklistCardFlavorText.style.display = 'block';
+            decklistCardFlavorText.scrollTop = 0;
+          } else {
+            decklistCardFlavorText.textContent = '';
+            decklistCardFlavorText.style.display = 'none';
+          }
         }
       } else {
-        // If no card is found in Riftbound, show solid black image
+        // If no card is found, show solid black image
         if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
-        if (decklistCardInfoText) decklistCardInfoText.textContent = `No se encontró carta para "${cardName}"`;
+        if (decklistCardInfoText) decklistCardInfoText.textContent = `No card found for "${cardName}"`;
+        if (decklistCardRulesText) {
+          decklistCardRulesText.textContent = '';
+          decklistCardRulesText.style.display = 'none';
+        }
+        if (decklistCardFlavorText) {
+          decklistCardFlavorText.textContent = '';
+          decklistCardFlavorText.style.display = 'none';
+        }
       }
     } catch (err) {
       if (err.name === 'AbortError') return;
-      console.warn('Error fetching Riftbound card:', err);
+      console.warn(`Error fetching ${gameLabel} card:`, err);
       if (decklistCardPreviewImg) decklistCardPreviewImg.src = BLACK_IMAGE;
-      if (decklistCardInfoText) decklistCardInfoText.textContent = 'No se encontró carta';
+      if (decklistCardInfoText) decklistCardInfoText.textContent = 'No card found';
+      if (decklistCardRulesText) {
+        decklistCardRulesText.textContent = '';
+        decklistCardRulesText.style.display = 'none';
+      }
+      if (decklistCardFlavorText) {
+        decklistCardFlavorText.textContent = '';
+        decklistCardFlavorText.style.display = 'none';
+      }
     } finally {
       if (decklistCardLoading) decklistCardLoading.style.display = 'none';
     }
@@ -146,26 +303,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!container) return;
     container.innerHTML = '';
 
-    if (!deckData || typeof deckData !== 'object') {
+    // If any section is empty, mark full deck list as empty and show same message
+    if (!isDecklistComplete(deckData)) {
       container.innerHTML = '<div class="decklist-row-line decklist-empty-line">Sin información de Deck List registrada.</div>';
       return;
     }
 
-    const sections = [
-      { title: 'LEGEND', value: deckData.legend },
-      { title: 'CHAMPION', value: deckData.champion },
-      { title: 'BATTLEFIELDS', value: deckData.battlefields },
-      { title: 'RUNES', value: deckData.runes },
-      { title: 'UNITS', value: deckData.units },
-      { title: 'SPELLS', value: deckData.spells },
-      { title: 'GEARS', value: deckData.gears },
-      { title: 'SIDEBOARD', value: deckData.sideboard }
-    ];
-
-    let hasAnyData = false;
-
+    const sections = getDecklistSections(deckData);
     sections.forEach(sec => {
-      const secVal = (sec.value || '').trim();
+      const secVal = (deckData[sec.key] || '').trim();
       const secBlock = document.createElement('div');
       secBlock.className = 'decklist-section-block';
 
@@ -174,45 +320,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       secTitle.textContent = `${sec.title}:`;
       secBlock.appendChild(secTitle);
 
-      if (!secVal) {
-        const emptyRow = document.createElement('div');
-        emptyRow.className = 'decklist-row-line decklist-empty-line';
-        emptyRow.textContent = '—';
-        secBlock.appendChild(emptyRow);
-      } else {
-        hasAnyData = true;
-        const lines = secVal.split(/\r?\n/);
-        lines.forEach(rawLine => {
-          const line = rawLine.trim();
-          if (!line) return;
+      const lines = secVal.split(/\r?\n/);
+      lines.forEach(rawLine => {
+        const line = rawLine.trim();
+        if (!line) return;
 
-          const rowEl = document.createElement('div');
-          rowEl.className = 'decklist-row-line';
+        const rowEl = document.createElement('div');
+        rowEl.className = 'decklist-row-line';
 
-          // All words in each row form the card name link
-          const link = document.createElement('a');
-          link.href = 'javascript:void(0)';
-          link.className = 'deck-row-link deck-word-link';
-          link.textContent = line;
-          link.title = `Buscar carta Riftbound: ${line}`;
-          link.setAttribute('data-card-name', line);
+        const isDigi = isDigimonDecklist(deckData);
+        const link = document.createElement('a');
+        link.href = 'javascript:void(0)';
+        link.className = 'deck-row-link deck-word-link';
+        link.textContent = line;
+        link.title = isDigi ? `Search Digimon card: ${line}` : `Search Riftbound card: ${line}`;
+        link.setAttribute('data-card-name', line);
 
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleDeckRowClick(line, link);
-          });
-
-          rowEl.appendChild(link);
-          secBlock.appendChild(rowEl);
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          handleDeckRowClick(line, link);
         });
-      }
+
+        rowEl.appendChild(link);
+        secBlock.appendChild(rowEl);
+      });
 
       container.appendChild(secBlock);
     });
-
-    if (!hasAnyData) {
-      container.innerHTML = '<div class="decklist-row-line decklist-empty-line">Sin información de Deck List registrada.</div>';
-    }
   }
 
   function openDecklistView(row, displayRank) {
@@ -232,10 +366,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       decklistCardPreviewImg.src = BLACK_IMAGE;
     }
     if (decklistCardTitleBadge) {
-      decklistCardTitleBadge.textContent = 'CARTA SELECCIONADA';
+      decklistCardTitleBadge.textContent = 'SELECTED CARD';
     }
     if (decklistCardInfoText) {
-      decklistCardInfoText.textContent = 'Haz clic en cualquier palabra para visualizar la carta';
+      decklistCardInfoText.textContent = 'Click any row to view the card';
+    }
+    if (decklistCardRulesText) {
+      decklistCardRulesText.textContent = '';
+      decklistCardRulesText.style.display = 'none';
+    }
+    if (decklistCardFlavorText) {
+      decklistCardFlavorText.textContent = '';
+      decklistCardFlavorText.style.display = 'none';
     }
     if (decklistCardLoading) {
       decklistCardLoading.style.display = 'none';
@@ -522,7 +664,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       else if (displayRank === 3) rankBadgeClass = 'top-3';
 
       const initialChar = row.jugador ? row.jugador.charAt(0).toUpperCase() : '?';
-      const hasDecklist = row.deckList && Object.values(row.deckList).some(v => v && v.trim().length > 0);
+      const hasDecklist = isDecklistComplete(row.deckList);
 
       tr.innerHTML = `
         <td>

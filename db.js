@@ -77,6 +77,12 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_players_nickname_tcg ON players(nickname, tcg);
   `);
 
+  // Auto-migration: ensure digieggs and digimon columns exist in tournament_results and global_rankings
+  try { db.exec("ALTER TABLE tournament_results ADD COLUMN digieggs TEXT"); } catch (_) {}
+  try { db.exec("ALTER TABLE tournament_results ADD COLUMN digimon TEXT"); } catch (_) {}
+  try { db.exec("ALTER TABLE global_rankings ADD COLUMN digieggs TEXT"); } catch (_) {}
+  try { db.exec("ALTER TABLE global_rankings ADD COLUMN digimon TEXT"); } catch (_) {}
+
   // Auto-migration: update players table constraint to composite UNIQUE(nickname, tcg) if using old schema
   try {
     const playersTableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='players'").get();
@@ -298,7 +304,9 @@ function getTournament(gameKey) {
           units: r.units || '',
           spells: r.spells || '',
           gears: r.gears || '',
-          sideboard: r.sideboard || ''
+          sideboard: r.sideboard || '',
+          digieggs: r.digieggs || '',
+          digimon: r.digimon || ''
         }
       }))
     : generateDefaultRows();
@@ -334,8 +342,9 @@ function saveGlobalRanking(gameKey, results) {
   const insertStmt = db.prepare(`
     INSERT INTO global_rankings (
       game_key, puesto, jugador, deck, puntos,
-      legend, champion, battlefields, runes, units, spells, gears, sideboard
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      legend, champion, battlefields, runes, units, spells, gears, sideboard,
+      digieggs, digimon
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const top4 = (results || []).slice(0, 4);
@@ -355,7 +364,9 @@ function saveGlobalRanking(gameKey, results) {
       dl.units || '',
       dl.spells || '',
       dl.gears || '',
-      dl.sideboard || ''
+      dl.sideboard || '',
+      dl.digieggs || dl.digiEggs || '',
+      dl.digimon || ''
     );
   }
 
@@ -392,8 +403,9 @@ function saveTournamentResults(gameKey, title, date, results) {
   const insertStmt = db.prepare(`
     INSERT INTO tournament_results (
       game_key, puesto, jugador, deck, puntos,
-      legend, champion, battlefields, runes, units, spells, gears, sideboard
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      legend, champion, battlefields, runes, units, spells, gears, sideboard,
+      digieggs, digimon
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const rows = Array.isArray(results) ? results : [];
@@ -413,7 +425,9 @@ function saveTournamentResults(gameKey, title, date, results) {
       dl.units || '',
       dl.spells || '',
       dl.gears || '',
-      dl.sideboard || ''
+      dl.sideboard || '',
+      dl.digieggs || dl.digiEggs || '',
+      dl.digimon || ''
     );
   }
 
